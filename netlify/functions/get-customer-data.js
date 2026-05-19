@@ -91,7 +91,10 @@ exports.handler = async (event, context) => {
       // --- ลำดับการแสดงผลหน้าแคตตาล็อก (สำหรับลูกค้า) ---
       stockSubMenuOrder: allShopSettings.stockSubMenuOrder,
       // --- การมองเห็นหน้า catalog (เปิด/ปิด) ---
-      catalogVisibility: allShopSettings.catalogVisibility
+      catalogVisibility: allShopSettings.catalogVisibility,
+
+      // --- พื้นหลังแต่ละหน้าสินค้า (Section Backgrounds) ---
+      sectionBackgrounds: allShopSettings.sectionBackgrounds
 
       // *** ข้อมูลที่ถูกคัดกรองออก (ไม่ส่งให้ลูกค้า) ***
       // - promotions (มีโค้ดส่วนลดทั้งหมด)
