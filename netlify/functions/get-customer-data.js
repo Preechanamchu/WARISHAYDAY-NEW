@@ -100,11 +100,13 @@ exports.handler = async (event, context) => {
       // --- พื้นหลังแต่ละหน้าสินค้า (Section Backgrounds) ---
       sectionBackgrounds: allShopSettings.sectionBackgrounds,
 
-      // --- วิดีโอแนะนำวิธีดูแท็ก/เมล ---
+      // --- วิดีโอแนะนำวิธีดูแท็ก/เมล/เหรียญ ---
       tagTutorialVideoUrl: allShopSettings.tagTutorialVideoUrl,
       tagTutorialVideoFile: allShopSettings.tagTutorialVideoFile,
       mailTutorialVideoUrl: allShopSettings.mailTutorialVideoUrl,
-      mailTutorialVideoFile: allShopSettings.mailTutorialVideoFile
+      mailTutorialVideoFile: allShopSettings.mailTutorialVideoFile,
+      coinTutorialVideoUrl: allShopSettings.coinTutorialVideoUrl,
+      coinTutorialVideoFile: allShopSettings.coinTutorialVideoFile
 
       // *** ข้อมูลที่ถูกคัดกรองออก (ไม่ส่งให้ลูกค้า) ***
       // - promotions (มีโค้ดส่วนลดทั้งหมด)
