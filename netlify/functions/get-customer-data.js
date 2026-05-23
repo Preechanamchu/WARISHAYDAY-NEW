@@ -72,6 +72,10 @@ exports.handler = async (event, context) => {
       orderBarSettings: allShopSettings.orderBarSettings, // (การตั้งค่าแถบสั่งซื้อ)
       gridLayoutSettings: allShopSettings.gridLayoutSettings, // (การตั้งค่ากริดสินค้า)
       priceTagConfig: allShopSettings.priceTagConfig, // (การตั้งค่าป้ายราคา 🏷️)
+      priceTagUpgradeConfig: allShopSettings.priceTagUpgradeConfig || { closingMessage: '', fontSize: 50 },
+      priceTagCoinConfig: allShopSettings.priceTagCoinConfig || { closingMessage: '', fontSize: 50 },
+      priceTagDiamondConfig: allShopSettings.priceTagDiamondConfig || { closingMessage: '', fontSize: 50 },
+      priceTagVoucherConfig: allShopSettings.priceTagVoucherConfig || { closingMessage: '', fontSize: 50 },
       // --- จบส่วนอัปเดต ---
 
       // UI อื่นๆ
