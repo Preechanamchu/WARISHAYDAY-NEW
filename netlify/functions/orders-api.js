@@ -60,8 +60,8 @@ async function createOrder(orderData, headers) {
     // ฟังก์ชันย่อยสำหรับบันทึกลงฐานข้อมูล
     const tryInsert = async (orderIdToUse) => {
       const insertOrderQuery = `
-        INSERT INTO orders (order_id, timestamp, total, items, status, promo_applied, upgrade_snapshot, customer_tag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO orders (order_id, timestamp, total, items, status, promo_applied, upgrade_snapshot, customer_tag, customer_email)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `;
       
       // แปลงข้อมูลเป็น JSON string ถ้าจำเป็น (ป้องกัน error กับฐานข้อมูลบางประเภท)
@@ -69,6 +69,7 @@ async function createOrder(orderData, headers) {
       const promoJson = orderData.promoApplied ? (typeof orderData.promoApplied === 'object' ? JSON.stringify(orderData.promoApplied) : orderData.promoApplied) : null;
       const upgradeSnapshotJson = orderData.upgradeSnapshot ? (typeof orderData.upgradeSnapshot === 'object' ? JSON.stringify(orderData.upgradeSnapshot) : orderData.upgradeSnapshot) : null;
       const customerTagValue = orderData.customerTag || orderData.customer_tag || null;
+      const customerEmailValue = orderData.customerEmail || orderData.customer_email || null;
 
       await client.query(insertOrderQuery, [
         orderIdToUse,
@@ -78,7 +79,8 @@ async function createOrder(orderData, headers) {
         'new', // สถานะเริ่มต้นคือ 'new' เสมอ
         promoJson,
         upgradeSnapshotJson,
-        customerTagValue
+        customerTagValue,
+        customerEmailValue
       ]);
     };
 
@@ -123,6 +125,17 @@ async function createOrder(orderData, headers) {
             // ไม่ต้องเพิ่ม attempts เพื่อให้ลูปเดิมพยายาม Insert ใหม่อีกครั้งทันที
           } catch (migrationErr) {
             console.error('Failed to auto-migrate database (customer_tag):', migrationErr);
+            throw err; // โยน Error เดิมออกไปถ้าแก้ไม่ได้
+          }
+        } else if (err.code === '42703' && err.message.includes('customer_email')) {
+          // กรณีคอลัมน์ customer_email ยังไม่มีในฐานข้อมูล (Auto-Migration)
+          console.warn(`Column customer_email missing. Attempting to add column...`);
+          try {
+            await client.query('ALTER TABLE orders ADD COLUMN customer_email TEXT');
+            console.log('Column customer_email added successfully.');
+            // ไม่ต้องเพิ่ม attempts เพื่อให้ลูปเดิมพยายาม Insert ใหม่อีกครั้งทันที
+          } catch (migrationErr) {
+            console.error('Failed to auto-migrate database (customer_email):', migrationErr);
             throw err; // โยน Error เดิมออกไปถ้าแก้ไม่ได้
           }
         } else {
