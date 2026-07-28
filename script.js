@@ -8352,7 +8352,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteCoinPackage = async (id) => {
-        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบแพ็กเกจเหรียญนี้?')) {
+        const confirmed = await Notify.confirm('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบแพ็กเกจเหรียญนี้?');
+        if (confirmed) {
             appData.shopSettings.coinPackages = appData.shopSettings.coinPackages.filter(p => p.id !== id);
             addLog('Coin Package Deleted', `ID: ${id}`);
             await saveState();
@@ -8494,7 +8495,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteVoucherPackage = async (id) => {
-        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบัตรกำนัลนี้?')) {
+        const confirmed = await Notify.confirm('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบบัตรกำนัลนี้?');
+        if (confirmed) {
             appData.shopSettings.voucherPackages = (appData.shopSettings.voucherPackages || []).filter(p => p.id !== id);
             addLog('Voucher Package Deleted', `ID: ${id}`);
             await saveState();
@@ -9525,7 +9527,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteDiamondPackage = async (id) => {
-        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบแพ็กเกจเพชรนี้?')) {
+        const confirmed = await Notify.confirm('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบแพ็กเกจเพชรนี้?');
+        if (confirmed) {
             appData.shopSettings.diamondPackages = appData.shopSettings.diamondPackages.filter(p => p.id !== id);
             await saveState();
             if (typeof renderAdminDiamondPackages === 'function') renderAdminDiamondPackages();
@@ -9649,7 +9652,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteFarmPassPackage = async (id) => {
-        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ Farm Pass นี้?')) {
+        const confirmed = await Notify.confirm('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบ Farm Pass นี้?');
+        if (confirmed) {
             appData.shopSettings.farmPassPackages = appData.shopSettings.farmPassPackages.filter(p => p.id !== id);
             await saveState();
             if (typeof renderAdminFarmPassPackages === 'function') renderAdminFarmPassPackages();
@@ -16219,9 +16223,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (uploadBtn) {
                 uploadBtn.addEventListener('click', () => {
                     if (timeRemaining && timeRemaining > 0) {
-                        alert('ระบบอัปโหลดหลักฐานกำลังพัฒนา');
+                        Notify.info('อยู่ระหว่างพัฒนา', 'ระบบอัปโหลดหลักฐานกำลังพัฒนา');
                     } else {
-                        alert('บัญชีหมดอายุ กรุณาติดต่อผู้ดูแลระบบ');
+                        Notify.warning('บัญชีหมดอายุ', 'กรุณาติดต่อผู้ดูแลระบบ');
                     }
                 });
             }
@@ -16229,7 +16233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const historyBtn = document.getElementById('view-payment-history-btn');
             if (historyBtn) {
                 historyBtn.addEventListener('click', () => {
-                    alert('ประวัติการชำระเงินกำลังพัฒนา');
+                    Notify.info('อยู่ระหว่างพัฒนา', 'ระบบประวัติการชำระเงินกำลังพัฒนา');
                 });
             }
 
@@ -18392,10 +18396,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderActiveStores();
         }
 
-        function confirmDeleteStoreFromDetail() {
+        async function confirmDeleteStoreFromDetail() {
             if (!currentDetailStore) return;
 
-            if (confirm(`คุณแน่ใจหรือไม่ที่จะลบร้านค้า "${currentDetailStore.shopName}"?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้!`)) {
+            const confirmed = await Notify.confirm(
+                'ยืนยันการลบร้านค้า',
+                `คุณแน่ใจหรือไม่ที่จะลบร้านค้า "${currentDetailStore.shopName}"? การกระทำนี้ไม่สามารถย้อนกลับได้!`
+            );
+            if (confirmed) {
                 const index = activeStores.findIndex(s => s.id === currentDetailStore.id);
                 if (index !== -1) {
                     activeStores.splice(index, 1);

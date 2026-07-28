@@ -1,0 +1,268 @@
+/* Premium feedback UI and HAYDAY storefront loader */
+
+/* Compact notification toasts */
+#notification-container {
+    top: 14px;
+    right: 14px;
+    width: min(300px, calc(100vw - 28px));
+    max-width: 300px;
+    gap: 8px;
+}
+
+.notification {
+    width: 100%;
+    min-height: 58px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 34px 10px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    box-shadow: 0 12px 30px rgba(16, 37, 31, 0.17), 0 2px 8px rgba(16, 37, 31, 0.08);
+    backdrop-filter: blur(16px) saturate(135%);
+    -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+
+.notification:hover {
+    transform: translateX(-2px);
+    box-shadow: 0 16px 34px rgba(16, 37, 31, 0.21), 0 2px 8px rgba(16, 37, 31, 0.09);
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.notification-icon svg { width: 16px; height: 16px; }
+.notification-content { line-height: 1.2; }
+
+.notification-title {
+    margin: 0 0 2px;
+    font-size: 0.79rem;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+}
+
+.notification-message {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.7rem;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.notification-close {
+    top: 8px;
+    right: 8px;
+    width: 19px;
+    height: 19px;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.notification-close svg { width: 9px; height: 9px; }
+.notification-progress { height: 2px; border-radius: 0 0 14px 14px; }
+.notification.notification-success { background: linear-gradient(135deg, rgba(25, 166, 107, 0.95), rgba(46, 196, 143, 0.94)); }
+.notification.notification-error { background: linear-gradient(135deg, rgba(214, 58, 79, 0.96), rgba(238, 73, 112, 0.94)); }
+.notification.notification-warning { background: linear-gradient(135deg, rgba(247, 174, 40, 0.97), rgba(255, 203, 75, 0.95)); }
+.notification.notification-info { background: linear-gradient(135deg, rgba(26, 151, 188, 0.96), rgba(61, 124, 219, 0.94)); }
+.notification.notification-default { background: linear-gradient(135deg, rgba(55, 70, 78, 0.95), rgba(78, 94, 102, 0.94)); }
+
+/* Refined confirmation dialog */
+#confirm-modal-overlay {
+    padding: 18px;
+    background: radial-gradient(circle at 50% 40%, rgba(68, 190, 126, 0.13), transparent 38%), rgba(10, 26, 22, 0.58);
+    backdrop-filter: blur(9px) saturate(110%);
+    -webkit-backdrop-filter: blur(9px) saturate(110%);
+}
+
+.confirm-modal {
+    width: min(350px, 100%);
+    max-width: 350px;
+    padding: 24px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    box-shadow: 0 28px 70px rgba(7, 27, 20, 0.3), 0 4px 16px rgba(7, 27, 20, 0.12);
+}
+
+.confirm-modal::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, #16a66b, #83d637, #f5c44c);
+}
+
+.confirm-modal-icon {
+    width: 50px;
+    height: 50px;
+    margin: 2px auto 14px;
+    border-radius: 15px;
+    transform: rotate(-3deg);
+}
+
+.confirm-modal-icon svg { width: 25px; height: 25px; transform: rotate(3deg); }
+.confirm-modal-icon.icon-warning { background: linear-gradient(145deg, #ffcb49, #f59b24); box-shadow: 0 9px 22px rgba(245, 155, 36, 0.28); }
+.confirm-modal-icon.icon-danger { background: linear-gradient(145deg, #fa5d73, #d92d4d); box-shadow: 0 9px 22px rgba(217, 45, 77, 0.25); }
+.confirm-modal-icon.icon-info { background: linear-gradient(145deg, #27bdd4, #2875d6); box-shadow: 0 9px 22px rgba(40, 117, 214, 0.24); }
+
+.confirm-modal-title {
+    margin: 0 0 7px;
+    color: #17352c;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.35;
+    text-shadow: none;
+}
+
+.confirm-modal-message {
+    max-width: 285px;
+    margin: 0 auto 20px;
+    color: #64736e;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.confirm-modal-buttons { gap: 9px; }
+.confirm-modal-btn { max-width: none; min-height: 42px; padding: 9px 14px; border-radius: 12px; font-size: 0.82rem; font-weight: 750; }
+.confirm-modal-btn.btn-cancel { color: #4c6059; background: #f1f5f3; border: 1px solid #dce5e1; }
+.confirm-modal-btn.btn-cancel:hover { color: #263f36; background: #e8efec; transform: translateY(-1px); }
+.confirm-modal-btn.btn-confirm { background: linear-gradient(135deg, #e43c5d, #d92970); box-shadow: 0 7px 16px rgba(217, 41, 112, 0.22); }
+.confirm-modal-btn.btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(217, 41, 112, 0.3); }
+.confirm-modal-btn.btn-confirm.confirm-success { background: linear-gradient(135deg, #17a86c, #3cc786); box-shadow: 0 7px 16px rgba(23, 168, 108, 0.23); }
+.confirm-modal-btn.btn-confirm.confirm-info { background: linear-gradient(135deg, #159bb9, #347bd8); box-shadow: 0 7px 16px rgba(52, 123, 216, 0.22); }
+
+body.dark-mode .confirm-modal { background: rgba(26, 36, 33, 0.98); border-color: rgba(255, 255, 255, 0.09); box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5); }
+body.dark-mode .confirm-modal-title { color: #f4faf7; }
+body.dark-mode .confirm-modal-message { color: #aebcb7; }
+body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #35443f; border-color: #485b54; }
+
+/* Entirely new premium loading experience */
+#loading-screen {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: clamp(18px, 4vw, 40px);
+    background: radial-gradient(circle at 12% 16%, rgba(255, 225, 112, 0.32), transparent 22%), radial-gradient(circle at 88% 12%, rgba(99, 216, 178, 0.35), transparent 26%), linear-gradient(145deg, #eaf9f3 0%, #d9f2eb 43%, #c9eae1 100%);
+}
+
+#loading-screen > .clouds-container,
+#loading-screen > .falling-leaves,
+#loading-screen > .birds-container,
+#loading-screen > .ui-container,
+#loading-screen > .landscape { display: none !important; }
+
+.hayday-premium-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: clamp(18px, 4vw, 40px);
+    font-family: var(--global-font, 'Prompt', sans-serif);
+}
+
+.hayday-premium-loader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.32;
+    background-image: radial-gradient(rgba(26, 126, 88, 0.19) 0.8px, transparent 0.8px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(to bottom, #000, transparent 76%);
+    -webkit-mask-image: linear-gradient(to bottom, #000, transparent 76%);
+}
+
+.hayday-loader-orb { position: absolute; border-radius: 50%; filter: blur(2px); will-change: transform; animation: haydayLoaderFloat 8s ease-in-out infinite alternate; }
+.hayday-loader-orb-one { top: -11vw; right: -8vw; width: clamp(190px, 34vw, 500px); aspect-ratio: 1; background: linear-gradient(145deg, rgba(62, 190, 139, 0.25), rgba(255, 255, 255, 0.48)); }
+.hayday-loader-orb-two { bottom: 4%; left: -10vw; width: clamp(160px, 28vw, 410px); aspect-ratio: 1; background: linear-gradient(145deg, rgba(255, 207, 75, 0.19), rgba(31, 159, 102, 0.18)); animation-delay: -3s; }
+
+.hayday-loader-card {
+    position: relative;
+    z-index: 3;
+    width: min(440px, 100%);
+    padding: clamp(20px, 4vw, 30px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 30px 90px rgba(22, 91, 68, 0.19), 0 4px 18px rgba(22, 91, 68, 0.08), inset 0 1px rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(22px) saturate(125%);
+    -webkit-backdrop-filter: blur(22px) saturate(125%);
+}
+
+.hayday-loader-card::after { content: ''; position: absolute; right: -80px; bottom: -90px; width: 210px; height: 210px; border: 42px solid rgba(39, 173, 111, 0.055); border-radius: 50%; pointer-events: none; }
+.hayday-loader-topline, .hayday-loader-store-badge, .hayday-loader-progress-head, .hayday-loader-footnote { display: flex; align-items: center; }
+.hayday-loader-topline { position: relative; z-index: 2; justify-content: space-between; }
+.hayday-loader-store-badge { gap: 9px; }
+.hayday-loader-store-icon { display: grid; width: 34px; height: 34px; place-items: center; color: #168a59; border-radius: 11px; background: #e5f6ed; box-shadow: inset 0 0 0 1px rgba(22, 138, 89, 0.08); }
+.hayday-loader-store-icon svg { width: 19px; stroke: currentColor; stroke-width: 1.8; }
+.hayday-loader-store-badge > span:last-child { display: grid; gap: 1px; }
+.hayday-loader-store-badge strong { color: #153b30; font-size: 0.68rem; font-weight: 850; letter-spacing: 0.08em; }
+.hayday-loader-store-badge small { color: #7b9189; font-size: 0.48rem; font-weight: 700; letter-spacing: 0.08em; }
+.hayday-loader-live { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; color: #168a59; border: 1px solid #ccebdd; border-radius: 999px; background: rgba(233, 250, 242, 0.8); font-size: 0.51rem; font-weight: 850; letter-spacing: 0.08em; }
+.hayday-loader-live i { width: 5px; height: 5px; border-radius: 50%; background: #22b873; box-shadow: 0 0 0 4px rgba(34, 184, 115, 0.12); animation: haydayLoaderPulse 1.8s ease-out infinite; }
+
+.hayday-loader-hero { position: relative; z-index: 2; display: grid; justify-items: center; padding: clamp(22px, 4vh, 34px) 0 20px; text-align: center; }
+.hayday-loader-emblem { display: grid; width: 66px; height: 66px; margin-bottom: 12px; place-items: center; color: #fff; border: 4px solid rgba(255, 255, 255, 0.9); border-radius: 22px; background: linear-gradient(145deg, #1db476, #72cc45); box-shadow: 0 14px 28px rgba(29, 180, 118, 0.25), inset 0 1px rgba(255, 255, 255, 0.3); transform: rotate(-4deg); }
+.hayday-loader-emblem svg { width: 40px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transform: rotate(4deg); }
+.hayday-loader-emblem .hayday-loader-leaf { fill: #f7d452; stroke: #f7d452; }
+.hayday-loader-eyebrow { margin: 0 0 2px; color: #719087; font-size: 0.56rem; font-weight: 850; letter-spacing: 0.19em; }
+.hayday-loader-hero h1 { display: flex; gap: 5px; margin: 0; font-size: clamp(2.35rem, 11vw, 3.25rem); font-weight: 950; line-height: 1; letter-spacing: -0.07em; filter: drop-shadow(0 5px 0 rgba(18, 90, 53, 0.1)); }
+.hayday-loader-hero h1 span:first-child { color: #178e59; }
+.hayday-loader-hero h1 span:last-child { color: #6fbd3d; }
+.hayday-loader-subtitle { max-width: 300px; margin: 8px 0 0; color: #657a73; font-size: 0.72rem; line-height: 1.55; }
+
+.hayday-loader-journey { position: relative; z-index: 2; display: grid; grid-template-columns: auto 1fr auto 1fr auto; align-items: center; margin: 0 0 22px; padding: 12px 14px; border: 1px solid rgba(29, 143, 93, 0.08); border-radius: 16px; background: rgba(240, 249, 245, 0.73); }
+.hayday-loader-journey > i { height: 1px; margin: 0 7px 17px; background: linear-gradient(90deg, #aedbc5, #d4e8de); }
+.hayday-loader-step { display: grid; justify-items: center; gap: 4px; color: #91a19b; font-size: 0.54rem; font-style: normal; white-space: nowrap; }
+.hayday-loader-step b { display: grid; width: 23px; height: 23px; place-items: center; color: #84968f; border-radius: 8px; background: #e2ebe7; font-size: 0.58rem; }
+.hayday-loader-step.is-active { color: #168b59; font-weight: 750; }
+.hayday-loader-step.is-active b { color: #fff; background: linear-gradient(145deg, #19a76c, #51c77d); box-shadow: 0 5px 11px rgba(25, 167, 108, 0.2); }
+
+.hayday-loader-progress-head { position: relative; z-index: 2; justify-content: space-between; margin-bottom: 8px; color: #6a8078; font-size: 0.64rem; }
+.hayday-loader-progress-head strong { color: #167f53; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.hayday-loader-progress-track { position: relative; z-index: 2; height: 8px; overflow: hidden; border-radius: 999px; background: #dae9e2; box-shadow: inset 0 1px 3px rgba(24, 92, 68, 0.11); }
+.hayday-loader-progress-fill { width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #159c63, #53c774 64%, #d1db43); box-shadow: 0 0 13px rgba(45, 185, 111, 0.35); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.hayday-loader-progress-fill::after { content: ''; display: block; width: 30%; height: 100%; margin-left: 70%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68)); }
+.hayday-loader-footnote { position: relative; z-index: 2; justify-content: center; gap: 5px; margin-top: 11px; color: #8a9b95; font-size: 0.54rem; }
+.hayday-loader-footnote svg { width: 13px; stroke: #36a875; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.hayday-loader-ground { position: absolute; inset: auto 0 0; height: 20vh; min-height: 100px; opacity: 0.9; pointer-events: none; }
+.hayday-loader-ground span { position: absolute; left: -10%; bottom: -55%; width: 120%; height: 130%; border-radius: 50% 50% 0 0; background: #53b66e; }
+.hayday-loader-ground span:nth-child(2) { left: -35%; bottom: -77%; background: #27945b; transform: rotate(5deg); }
+.hayday-loader-ground span:nth-child(3) { left: 28%; bottom: -82%; background: #78c56d; transform: rotate(-6deg); }
+
+@keyframes haydayLoaderFloat { from { transform: translate3d(0, -6px, 0) scale(0.98); } to { transform: translate3d(12px, 10px, 0) scale(1.04); } }
+@keyframes haydayLoaderPulse { 0% { box-shadow: 0 0 0 0 rgba(34, 184, 115, 0.32); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34, 184, 115, 0); } }
+
+@media (max-width: 480px) {
+    #notification-container { top: 10px; right: 10px; left: auto; width: min(286px, calc(100vw - 20px)); }
+    .notification { padding: 9px 32px 9px 9px; border-radius: 13px; }
+    .confirm-modal { padding: 22px 18px 18px; border-radius: 20px; }
+    .confirm-modal-buttons { flex-direction: row; }
+    .hayday-loader-card { padding: 18px; border-radius: 24px; }
+    .hayday-loader-hero { padding: 20px 0 17px; }
+    .hayday-loader-journey { margin-bottom: 18px; padding-inline: 9px; }
+    .hayday-loader-journey > i { margin-inline: 4px; }
+    .hayday-loader-step { font-size: 0.48rem; }
+}
+
+@media (max-height: 620px) {
+    .hayday-loader-card { padding: 16px 20px; }
+    .hayday-loader-hero { padding: 12px 0; }
+    .hayday-loader-emblem { width: 50px; height: 50px; margin-bottom: 7px; border-radius: 17px; }
+    .hayday-loader-emblem svg { width: 31px; }
+    .hayday-loader-journey { margin-bottom: 14px; padding-block: 8px; }
+    .hayday-loader-footnote { margin-top: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hayday-loader-orb, .hayday-loader-live i { animation: none; }
+    .notification, .confirm-modal { transition-duration: 0.01ms; }
+}
