@@ -106,20 +106,14 @@
             <div class="hayday-loader-orb hayday-loader-orb-one"></div>
             <div class="hayday-loader-orb hayday-loader-orb-two"></div>
 
+            <div class="hayday-loader-clouds" aria-hidden="true">
+                <div class="hayday-loader-cloud cloud-a"><i></i><i></i><i></i></div>
+                <div class="hayday-loader-cloud cloud-b"><i></i><i></i><i></i></div>
+                <div class="hayday-loader-cloud cloud-c"><i></i><i></i><i></i></div>
+            </div>
+
             <div class="hayday-loader-card">
                 <div class="hayday-loader-topline">
-                    <div class="hayday-loader-store-badge">
-                        <span class="hayday-loader-store-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M4 9.5h16v9.25A1.25 1.25 0 0 1 18.75 20H5.25A1.25 1.25 0 0 1 4 18.75V9.5Z"/>
-                                <path d="m3 9.5 1.7-5h14.6l1.7 5M8 9.5v-5m8 5v-5M9 20v-5h6v5"/>
-                            </svg>
-                        </span>
-                        <span>
-                            <strong>WARIS STORE</strong>
-                            <small>HAYDAY ORDER SYSTEM</small>
-                        </span>
-                    </div>
                     <span class="hayday-loader-live"><i></i> ONLINE</span>
                 </div>
 
@@ -134,14 +128,6 @@
                     <p class="hayday-loader-eyebrow">WELCOME TO THE FARM</p>
                     <h1><span>HAY</span><span>DAY</span></h1>
                     <p class="hayday-loader-subtitle">ระบบสั่งซื้อสินค้า รวดเร็ว ปลอดภัย และเป็นระเบียบ</p>
-                </div>
-
-                <div class="hayday-loader-journey" aria-hidden="true">
-                    <div class="hayday-loader-step is-active"><b>1</b><span>เลือกสินค้า</span></div>
-                    <i></i>
-                    <div class="hayday-loader-step"><b>2</b><span>ตรวจออเดอร์</span></div>
-                    <i></i>
-                    <div class="hayday-loader-step"><b>3</b><span>พร้อมจัดส่ง</span></div>
                 </div>
 
                 <div class="hayday-loader-progress-head">
@@ -294,7 +280,6 @@
             const label = document.getElementById('premium-percentage-text') || document.getElementById('percentage-text');
             const status = document.getElementById('premium-loader-status');
             if (!screen || !bar || !label) return;
-            const journeySteps = screen.querySelectorAll('.hayday-loader-step');
 
             let progress = 0;
             let displayedValue = -1;
@@ -318,10 +303,6 @@
                                     ? 'กำลังตรวจสอบสต๊อกสินค้า...'
                                     : 'พร้อมให้บริการแล้ว';
                     }
-                    journeySteps.forEach((step, index) => {
-                        const activateAt = index === 0 ? 0 : index === 1 ? 35 : 75;
-                        step.classList.toggle('is-active', roundedValue >= activateAt);
-                    });
                 }
             };
 
