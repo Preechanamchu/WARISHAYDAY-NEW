@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             priceTagCoinConfig: { closingMessage: '', fontSize: 50 },
             priceTagDiamondConfig: { closingMessage: '', fontSize: 50 },
             priceTagVoucherConfig: { closingMessage: '', fontSize: 50 },
+            priceTagProductMachinesConfig: { closingMessage: '', fontSize: 50 },
             // --- END UPDATE ---
             messageSettings: {
                 color: "#FFFFFF",
@@ -4058,7 +4059,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.createElement('div');
         container.className = 'upgrade-catalog-container';
         // Use flex and min-height to stretch the container down to the order bar
-        container.style.cssText = 'width: 100%; grid-column: 1/-1; display: flex; flex-direction: column; min-height: calc(100vh - 380px); gap: 20px;';
+        container.style.cssText = 'width: 100%; grid-column: 1/-1; display: flex; flex-direction: column; min-height: calc(100vh - 380px); gap: 0;';
 
         // Menu Cards
         const menuGrid = document.createElement('div');
@@ -4089,7 +4090,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Apply custom styles from settings
             descBox.style.cssText = `
-                margin-top: auto;
+                margin-top: ${Math.max(0, Math.min(240, descConfig.spacing ?? 20))}px;
                 margin-bottom: 0;
                 padding: 20px;
                 border-radius: 12px;
@@ -8082,7 +8083,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'upgrade': 'priceTagUpgradeConfig',
             'coin':    'priceTagCoinConfig',
             'diamond': 'priceTagDiamondConfig',
-            'voucher': 'priceTagVoucherConfig'
+            'voucher': 'priceTagVoucherConfig',
+            'machines': 'priceTagProductMachinesConfig'
         };
         return keyMap[tab] || 'priceTagConfig';
     }
@@ -8585,6 +8587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="admin-product-machine-actions">
                                     <button type="button" class="btn btn-primary save-product-machine-btn" data-index="${index}">💾 บันทึก</button>
                                     ${isConfigured ? `<button type="button" class="btn btn-secondary choose-machine-products-btn" data-id="${escapeMachineText(machine.id)}">เลือกสินค้า (${selectedCount})</button>` : ''}
+                                    ${isConfigured ? `<button type="button" class="btn btn-info view-machine-products-btn" data-id="${escapeMachineText(machine.id)}">ดูสินค้า (${selectedCount})</button>` : ''}
                                     <button type="button" class="btn btn-danger delete-product-machine-btn" data-index="${index}">ลบ</button>
                                 </div>
                             </article>`;
@@ -8620,6 +8623,10 @@ document.addEventListener('DOMContentLoaded', () => {
             button.onclick = () => openProductMachinePicker(button.dataset.id);
         });
 
+        container.querySelectorAll('.view-machine-products-btn').forEach(button => {
+            button.onclick = () => openProductMachineProductsViewer(button.dataset.id);
+        });
+
         container.querySelectorAll('.delete-product-machine-btn').forEach(button => {
             button.onclick = async () => {
                 const index = Number(button.dataset.index);
@@ -8644,6 +8651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!machine) return;
 
         const allowedCategories = new Set([
+            'ขนม',
             'วัตถุดิบ',
             'อุปกรณ์ทำลายล้าง',
             'แท่งแร่ & อัญมณี',
@@ -8665,6 +8673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" class="machine-product-picker-close" aria-label="ปิด">×</button>
                 </div>
                 <div class="machine-product-picker-search">
+                    <span class="machine-picker-search-icon">🔎</span>
                     <input type="search" placeholder="พิมพ์ชื่อสินค้า..." aria-label="ค้นหาสินค้า">
                     <span class="machine-picker-count"></span>
                 </div>
@@ -8733,6 +8742,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateCount();
         renderPickerProducts();
+        search.focus();
+    };
+
+    const openProductMachineProductsViewer = (machineId) => {
+        const machine = getProductMachines().find(item => String(item.id) === String(machineId));
+        if (!machine) return;
+        const selectedIds = new Set((machine.productIds || []).map(String));
+        const selectedProducts = appData.allProducts.filter(product => selectedIds.has(String(product.id)));
+
+        const overlay = document.createElement('div');
+        overlay.className = 'machine-product-picker-overlay';
+        overlay.innerHTML = `
+            <div class="machine-product-picker-modal">
+                <div class="machine-product-picker-header">
+                    <div><h3>สินค้าใน ${escapeMachineText(machine.name)}</h3><p>รายการสินค้าที่เลือกไว้ในเครื่องนี้</p></div>
+                    <button type="button" class="machine-product-picker-close" aria-label="ปิด">×</button>
+                </div>
+                <div class="machine-product-picker-search">
+                    <span class="machine-picker-search-icon">🔎</span>
+                    <input type="search" placeholder="ค้นหาสินค้าที่เลือกไว้..." aria-label="ค้นหาสินค้าที่เลือกไว้">
+                    <span class="machine-picker-count">${selectedProducts.length} รายการ</span>
+                </div>
+                <div class="machine-product-picker-list machine-products-view-list"></div>
+                <div class="machine-product-picker-footer"><button type="button" class="btn btn-primary machine-picker-close-view">ปิด</button></div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const list = overlay.querySelector('.machine-product-picker-list');
+        const search = overlay.querySelector('input[type="search"]');
+        const renderSelectedProducts = () => {
+            const query = search.value.trim().toLocaleLowerCase('th-TH');
+            const products = selectedProducts.filter(product => {
+                const searchable = `${product.name || ''} ${product.name_en || ''}`.toLocaleLowerCase('th-TH');
+                return !query || searchable.includes(query);
+            });
+            list.innerHTML = '';
+            if (!products.length) {
+                list.innerHTML = '<div class="product-machines-empty">ไม่พบสินค้าที่เลือกไว้</div>';
+                return;
+            }
+            const grid = document.createElement('div');
+            grid.className = 'machine-products-view-grid';
+            products.forEach(product => {
+                const category = appData.categories.find(item => String(item.id) === String(product.category_id));
+                const item = document.createElement('article');
+                item.className = 'machine-picker-product selected machine-product-view-item';
+                item.innerHTML = `
+                    <img src="${escapeMachineText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeMachineText(product.name)}">
+                    <div><strong>${escapeMachineText(product.name)}</strong><small>${escapeMachineText(product.name_en || '')}</small><small>${escapeMachineText(category?.name || '')}</small></div>`;
+                grid.appendChild(item);
+            });
+            list.appendChild(grid);
+        };
+        const closeViewer = () => overlay.remove();
+        overlay.querySelector('.machine-product-picker-close').onclick = closeViewer;
+        overlay.querySelector('.machine-picker-close-view').onclick = closeViewer;
+        overlay.addEventListener('click', event => { if (event.target === overlay) closeViewer(); });
+        search.addEventListener('input', renderSelectedProducts);
+        renderSelectedProducts();
         search.focus();
     };
     // ===== END: ADMIN PRODUCT MACHINES =====
@@ -8922,6 +8990,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <option value="'Mitr', sans-serif" ${appData.shopSettings.upgradeSettings?.description?.font === "'Mitr', sans-serif" ? 'selected' : ''}>Mitr (มิตร)</option>
                                 </select>
                             </div>
+                            <div class="admin-field" style="grid-column: 1 / -1;">
+                                <label>ระยะห่างระหว่างการ์ดสินค้ากับคำอธิบาย: <span id="upgrade-desc-spacing-value">${appData.shopSettings.upgradeSettings?.description?.spacing ?? 20}px</span></label>
+                                <input type="range" id="upgrade-desc-spacing" min="0" max="240" step="4" value="${appData.shopSettings.upgradeSettings?.description?.spacing ?? 20}" style="width: 100%;">
+                            </div>
                         </div>
                         <button class="btn btn-secondary" id="save-desc-btn" style="width: 100%; margin-top: 15px; padding: 10px; border-radius: 8px; font-weight: bold;">💾 บันทึกคำอธิบาย</button>
                     </div>
@@ -8965,6 +9037,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             renderHowToOrderVideoPreview(howToOrderVideoFileBase64);
+
+            const descSpacingInput = settingsCard.querySelector('#upgrade-desc-spacing');
+            const descSpacingValue = settingsCard.querySelector('#upgrade-desc-spacing-value');
+            if (descSpacingInput && descSpacingValue) {
+                descSpacingInput.oninput = () => { descSpacingValue.textContent = `${descSpacingInput.value}px`; };
+            }
 
             // Events
             settingsCard.querySelector('#add-menu-btn').onclick = () => {
@@ -9207,7 +9285,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: document.getElementById('upgrade-desc-text').value,
                     size: parseInt(document.getElementById('upgrade-desc-size').value) || 16,
                     color: document.getElementById('upgrade-desc-color').value,
-                    font: document.getElementById('upgrade-desc-font').value
+                    font: document.getElementById('upgrade-desc-font').value,
+                    spacing: Math.max(0, Math.min(240, parseInt(document.getElementById('upgrade-desc-spacing').value) || 0))
                 };
                 
                 await saveState();
@@ -14351,6 +14430,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 priceTagConfig = appData.shopSettings.priceTagVoucherConfig || {};
             } else if (catalogPage === 4) {
                 priceTagConfig = appData.shopSettings.priceTagUpgradeConfig || {};
+            } else if (catalogPage === 5) {
+                priceTagConfig = appData.shopSettings.priceTagProductMachinesConfig || {};
             } else {
                 priceTagConfig = appData.shopSettings.priceTagConfig || {};
             }
