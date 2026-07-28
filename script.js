@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lowStockThreshold: 50,
             coinPackages: [],
             voucherPackages: [],
+            productMachines: [],
 
             dbCategoryLowStockThresholds: {},
             copyrightText: "Copyright © 2025 HAYDAY",
@@ -242,11 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             // ===== END: Upgrade Settings =====
-            stockSubMenuOrder: ['categories', 'coin-packages', 'diamond-pass', 'voucher-packages', 'upgrade', 'products'],
-            catalogVisibility: { products: true, upgrade: true, 'coin-packages': true, 'diamond-pass': true, 'voucher-packages': true },
+            stockSubMenuOrder: ['categories', 'coin-packages', 'diamond-pass', 'voucher-packages', 'upgrade', 'product-machines', 'products'],
+            catalogVisibility: { products: true, upgrade: true, 'product-machines': true, 'coin-packages': true, 'diamond-pass': true, 'voucher-packages': true },
             sectionBackgrounds: {
                 products: { imageUrl: '', blur: 0, opacity: 0.3 },
                 upgrade: { imageUrl: '', blur: 0, opacity: 0.3 },
+                'product-machines': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'coin-packages': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'diamond-pass': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'voucher-packages': { imageUrl: '', blur: 0, opacity: 0.3 }
@@ -940,7 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBgBtn: "ลบพื้นหลัง", previewBgBtn: "ดูตัวอย่าง", saveSettingsBtn: "บันทึกการตั้งค่า",
             copyrightTextLabel: "ข้อความ Copyright", copyrightOpacityLabel: "ความคมชัด",
             changePinTitle: "เปลี่ยนรหัสผ่าน", newPinLabel: "PIN ใหม่", saveNewPinBtn: "บันทึก PIN ใหม่",
-            manageCategoriesTitle: "จัดการหมวดหมู่", manageCoinPackagesTitle: "เติมเหรียญ", manageDiamondPassTitle: "เพชร & Pass", manageVoucherPackagesTitle: "บัตรกำนัล", manageUpgradeTitle: "จัดการอัพเกรด", upgradeSettingsTitle: "ตั้งค่าอัพเกรด", upgradePricingTitle: "ตั้งค่าราคาอัพเกรด", upgradeLimitCheckBtn: "เช็คลิมิต", upgradeLimitHowBtn: "วิธีเช็คลิมิต", upgradeHowToOrderBtn: "วิธีกดสินค้า", upgradeBuyMixed: "ซื้อแบบคละ", upgradeBuySelect: "ซื้อแบบเลือก", upgradeBuyPure: "ซื้อแบบล้วน", upgradeBuyCrossZone: "ซื้อแบบเลือกข้ามโซน", upgradeConfirmOrder: "ยืนยันสั่งซื้อ", upgradeLimitResult: "จำนวนที่กดได้", upgradeLimitFull: "กดได้ 89 เต็มลิมิต", upgradeLimitExceed: "เกินลิมิตที่ท่านจะกดได้", upgradeTrayLabel: "ถาด", upgradePriceMixed: "ราคาคละ", upgradePriceSelect: "ราคาเลือก", upgradePricePure: "ราคาล้วน", upgradePriceCrossZone: "ราคาข้ามโซน", upgradeTrayPrice: "ราคาต่อถาด", categoryNameLabel: "ชื่อหมวดหมู่", categoryNameEnLabel: "ชื่อหมวดหมู่ (English)", categoryIconLabel: "ไอค่อนหมวดหมู่", minOrderLabel: "จำนวนสั่งซื้อขั้นต่ำ",
+            manageCategoriesTitle: "จัดการหมวดหมู่", manageCoinPackagesTitle: "เติมเหรียญ", manageDiamondPassTitle: "เพชร & Pass", manageVoucherPackagesTitle: "บัตรกำนัล", manageUpgradeTitle: "จัดการอัพเกรด", manageProductMachinesTitle: "เครื่องสินค้า", productMachinesCatalogTitle: "สั่งซื้อสินค้าตามเครื่อง", upgradeSettingsTitle: "ตั้งค่าอัพเกรด", upgradePricingTitle: "ตั้งค่าราคาอัพเกรด", upgradeLimitCheckBtn: "เช็คลิมิต", upgradeLimitHowBtn: "วิธีเช็คลิมิต", upgradeHowToOrderBtn: "วิธีกดสินค้า", upgradeBuyMixed: "ซื้อแบบคละ", upgradeBuySelect: "ซื้อแบบเลือก", upgradeBuyPure: "ซื้อแบบล้วน", upgradeBuyCrossZone: "ซื้อแบบเลือกข้ามโซน", upgradeConfirmOrder: "ยืนยันสั่งซื้อ", upgradeLimitResult: "จำนวนที่กดได้", upgradeLimitFull: "กดได้ 89 เต็มลิมิต", upgradeLimitExceed: "เกินลิมิตที่ท่านจะกดได้", upgradeTrayLabel: "ถาด", upgradePriceMixed: "ราคาคละ", upgradePriceSelect: "ราคาเลือก", upgradePricePure: "ราคาล้วน", upgradePriceCrossZone: "ราคาข้ามโซน", upgradeTrayPrice: "ราคาต่อถาด", categoryNameLabel: "ชื่อหมวดหมู่", categoryNameEnLabel: "ชื่อหมวดหมู่ (English)", categoryIconLabel: "ไอค่อนหมวดหมู่", minOrderLabel: "จำนวนสั่งซื้อขั้นต่ำ",
             setPriceLabel: "ตั้งค่าราคา", setPerPiecePriceBtn: "ตั้งราคาต่อชิ้น", saveCategoryBtn: "เพิ่ม/บันทึกหมวดหมู่", categoryListTitle: "รายการหมวดหมู่",
             tableHeaderIcon: "ไอค่อน", tableHeaderName: "ชื่อ", tableHeaderMinOrder: "ขั้นต่ำ", tableHeaderPrice: "ราคา",
             manageProductsTitle: "จัดการสินค้า", productNameLabel: "ชื่อสินค้า", productNameEnLabel: "ชื่อสินค้า (English)", levelLabel: "เลเวล", stockQuantityLabel: "จำนวนคงเหลือ", categoryLabel: "หมวดหมู่",
@@ -1093,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBgBtn: "Remove Background", previewBgBtn: "Preview", saveSettingsBtn: "Save Settings",
             copyrightTextLabel: "Copyright Text", copyrightOpacityLabel: "Opacity",
             changePinTitle: "Change Password", newPinLabel: "New PIN", saveNewPinBtn: "Save New PIN",
-            manageCategoriesTitle: "Manage Categories", manageCoinPackagesTitle: "Add Coins", manageDiamondPassTitle: "Diamond & Pass", manageVoucherPackagesTitle: "Vouchers", categoryNameLabel: "Category Name", categoryNameEnLabel: "Category Name (English)", categoryIconLabel: "Category Icon", minOrderLabel: "Minimum Order Quantity",
+            manageCategoriesTitle: "Manage Categories", manageCoinPackagesTitle: "Add Coins", manageDiamondPassTitle: "Diamond & Pass", manageVoucherPackagesTitle: "Vouchers", manageProductMachinesTitle: "Product Machines", productMachinesCatalogTitle: "Shop by Machine", categoryNameLabel: "Category Name", categoryNameEnLabel: "Category Name (English)", categoryIconLabel: "Category Icon", minOrderLabel: "Minimum Order Quantity",
             setPriceLabel: "Set Price", setPerPiecePriceBtn: "Set Per-Piece Price", saveCategoryBtn: "Add/Save Category", categoryListTitle: "Category List",
             tableHeaderIcon: "Icon", tableHeaderName: "Name", tableHeaderMinOrder: "Min. Order", tableHeaderPrice: "Price",
             manageProductsTitle: "Manage Products", productNameLabel: "Product Name", productNameEnLabel: "Product Name (English)", levelLabel: "Level", stockQuantityLabel: "Stock Quantity", categoryLabel: "Category",
@@ -1230,6 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'voucher-packages': 'manageVoucherPackagesTitle',
             'products': 'manageProductsTitle',
             'upgrade': 'manageUpgradeTitle',
+            'product-machines': 'manageProductMachinesTitle',
             'main-control': 'ควบคุมหน้าหลัก',
             'section-backgrounds': 'พื้นหลัง'
         },
@@ -1397,10 +1400,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     console.log('🔧 [loadCustomerData] Auto-patched stockSubMenuOrder with upgrade:', appData.shopSettings.stockSubMenuOrder);
                 }
+                if (appData.shopSettings.stockSubMenuOrder && !appData.shopSettings.stockSubMenuOrder.includes('product-machines')) {
+                    const productsIdx = appData.shopSettings.stockSubMenuOrder.indexOf('products');
+                    appData.shopSettings.stockSubMenuOrder.splice(productsIdx >= 0 ? productsIdx : appData.shopSettings.stockSubMenuOrder.length, 0, 'product-machines');
+                }
                 
                 // NEW: Set initial catalog page based on first catalog item in custom order
                 if (appData.shopSettings.stockSubMenuOrder && appData.shopSettings.stockSubMenuOrder.length > 0) {
-                    const pageMap = { 'coin-packages': 1, 'diamond-pass': 2, 'voucher-packages': 3, 'upgrade': 4, 'products': 0 };
+                    const pageMap = { 'coin-packages': 1, 'diamond-pass': 2, 'voucher-packages': 3, 'upgrade': 4, 'product-machines': 5, 'products': 0 };
                     const catVis = appData.shopSettings.catalogVisibility || {};
                     const catalogOrder = appData.shopSettings.stockSubMenuOrder.filter(k => pageMap[k] !== undefined && catVis[k] !== false);
                     if (catalogOrder.length > 0) {
@@ -1482,6 +1489,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     appData.shopSettings.stockSubMenuOrder.push('upgrade');
                 }
+            }
+            if (appData.shopSettings.stockSubMenuOrder && !appData.shopSettings.stockSubMenuOrder.includes('product-machines')) {
+                const productsIdx = appData.shopSettings.stockSubMenuOrder.indexOf('products');
+                appData.shopSettings.stockSubMenuOrder.splice(productsIdx >= 0 ? productsIdx : appData.shopSettings.stockSubMenuOrder.length, 0, 'product-machines');
             }
 
         } catch (error) {
@@ -1670,6 +1681,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderUpgradeCatalogFrontend();
                 document.getElementById('current-category-name').textContent = translations[lang].upgradeCatalogTitle;
                 applySectionBackground('upgrade');
+            } else if (catalogPage === 5 && typeof renderProductMachinesFrontend === 'function') {
+                if (activeProductMachineId) {
+                    renderProductMachineDetail(activeProductMachineId);
+                } else {
+                    renderProductMachinesFrontend();
+                    document.getElementById('current-category-name').textContent = translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง';
+                }
+                applySectionBackground('product-machines');
             } else {
                 renderProducts(searchBox.value.trim());
                 applySectionBackground('products');
@@ -2290,7 +2309,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             localStorage.setItem('warishayday_cart', JSON.stringify(appData.cart));
 
-            renderProducts(searchBox.value.trim());
+            if (catalogPage === 5 && activeProductMachineId) {
+                renderProductMachineDetail(activeProductMachineId);
+            } else {
+                renderProducts(searchBox.value.trim());
+            }
             checkOrderValidation();
         }
     });
@@ -3493,6 +3516,12 @@ document.addEventListener('DOMContentLoaded', () => {
             renderUpgradeCatalogFrontend();
             document.getElementById('current-category-name').textContent = translations[lang].upgradeCatalogTitle;
             applySectionBackground('upgrade');
+        } else if (catalogPage === 5 && typeof renderProductMachinesFrontend === 'function') {
+            if (activeProductMachineId) renderProductMachineDetail(activeProductMachineId); else renderProductMachinesFrontend();
+            document.getElementById('current-category-name').textContent = activeProductMachineId
+                ? (getProductMachines().find(machine => String(machine.id) === String(activeProductMachineId))?.name || 'เครื่องสินค้า')
+                : (translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง');
+            applySectionBackground('product-machines');
         } else {
             renderProducts(searchBox.value.trim());
             applySectionBackground('products');
@@ -3586,8 +3615,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const controlsWrapper = document.getElementById('product-controls-wrapper');
 
         // NEW: Determine catalogPage based on custom order (filter only catalog-related keys)
-        const fullOrder = appData.shopSettings.stockSubMenuOrder || ['categories', 'coin-packages', 'diamond-pass', 'voucher-packages', 'upgrade', 'products'];
-        const pageMap = { 'coin-packages': 1, 'diamond-pass': 2, 'voucher-packages': 3, 'upgrade': 4, 'products': 0 };
+        const fullOrder = appData.shopSettings.stockSubMenuOrder || ['categories', 'coin-packages', 'diamond-pass', 'voucher-packages', 'upgrade', 'product-machines', 'products'];
+        const pageMap = { 'coin-packages': 1, 'diamond-pass': 2, 'voucher-packages': 3, 'upgrade': 4, 'product-machines': 5, 'products': 0 };
         const catalogVisibility = appData.shopSettings.catalogVisibility || {};
         const catalogOrder = fullOrder.filter(k => pageMap[k] !== undefined && catalogVisibility[k] !== false);
         
@@ -3599,7 +3628,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ===== SMOOTH TRANSITION: ใช้ animateGridSwitch สำหรับทุกการสลับ =====
         animateGridSwitch(() => {
-            if (catalogPage === 1 || catalogPage === 2 || catalogPage === 3 || catalogPage === 4) {
+            if (catalogPage === 1 || catalogPage === 2 || catalogPage === 3 || catalogPage === 4 || catalogPage === 5) {
                 // ซ่อน controls wrapper สำหรับหน้า catalog
                 if (controlsWrapper) {
                     controlsWrapper.style.transition = 'none';
@@ -3627,6 +3656,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof renderUpgradeCatalogFrontend === 'function') renderUpgradeCatalogFrontend();
                     document.getElementById('current-category-name').textContent = translations[lang].upgradeCatalogTitle;
                     applySectionBackground('upgrade');
+                } else if (catalogPage === 5) {
+                    if (typeof renderProductMachinesFrontend === 'function') renderProductMachinesFrontend();
+                    document.getElementById('current-category-name').textContent = translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง';
+                    applySectionBackground('product-machines');
                 }
             } else {
                 // คืนค่า controls wrapper สำหรับหน้าสินค้าปกติ
@@ -3901,6 +3934,111 @@ document.addEventListener('DOMContentLoaded', () => {
         productGrid.appendChild(container);
     };
     // ===== END: VOUCHER FRONTEND FUNC =====
+
+    // ===== START: PRODUCT MACHINES FRONTEND =====
+    let activeProductMachineId = null;
+
+    window.renderProductMachinesFrontend = () => {
+        const productGrid = document.getElementById('product-grid');
+        if (!productGrid) return;
+        activeProductMachineId = null;
+        productGrid.innerHTML = '';
+        const lang = appData.shopSettings.language;
+        const machines = getProductMachines().filter(machine => machine.name?.trim() && machine.name_en?.trim() && machine.imageUrl?.trim());
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'product-machines-catalog';
+        if (!machines.length) {
+            wrapper.innerHTML = `<div class="product-machines-empty">${lang === 'th' ? 'ยังไม่มีเครื่องสินค้า' : 'No product machines yet'}</div>`;
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'product-machines-storefront-grid';
+            machines.forEach(machine => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'product-machine-storefront-card';
+                const machineName = lang === 'en' && machine.name_en ? machine.name_en : machine.name;
+                card.innerHTML = `
+                    <span class="product-machine-storefront-image">
+                        <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <span style="display:none">🏭</span>
+                    </span>
+                    <strong>${escapeMachineText(machineName)}</strong>
+                    <small>${(machine.productIds || []).length} ${lang === 'th' ? 'สินค้า' : 'products'}</small>`;
+                card.onclick = () => renderProductMachineDetail(machine.id);
+                grid.appendChild(card);
+            });
+            wrapper.appendChild(grid);
+        }
+        productGrid.appendChild(wrapper);
+    };
+
+    window.renderProductMachineDetail = (machineId) => {
+        const productGrid = document.getElementById('product-grid');
+        const machine = getProductMachines().find(item => String(item.id) === String(machineId));
+        if (!productGrid || !machine) {
+            renderProductMachinesFrontend();
+            return;
+        }
+        activeProductMachineId = machine.id;
+        productGrid.innerHTML = '';
+        const lang = appData.shopSettings.language;
+        const gridSettings = appData.shopSettings.gridLayoutSettings;
+        const isShopClosed = !appData.shopSettings.shopEnabled;
+        const selectedIds = new Set((machine.productIds || []).map(String));
+        const products = appData.allProducts
+            .filter(product => selectedIds.has(String(product.id)) && !product.hidden)
+            .sort((a, b) => (a.level || 0) - (b.level || 0));
+        const machineName = lang === 'en' && machine.name_en ? machine.name_en : machine.name;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'product-machine-detail';
+        wrapper.innerHTML = `
+            <div class="product-machine-detail-header">
+                <button type="button" class="btn btn-secondary product-machine-back-btn">← ${lang === 'th' ? 'กลับไปหน้าเครื่องสินค้า' : 'Back to machines'}</button>
+                <div class="product-machine-detail-title">
+                    <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}">
+                    <h3>${escapeMachineText(machineName)}</h3>
+                </div>
+            </div>
+            <div class="product-machine-products-grid product-grid-container"></div>`;
+        wrapper.querySelector('.product-machine-back-btn').onclick = () => {
+            renderProductMachinesFrontend();
+            document.getElementById('current-category-name').textContent = translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง';
+        };
+        const productsGrid = wrapper.querySelector('.product-machine-products-grid');
+
+        if (!products.length) {
+            productsGrid.innerHTML = `<div class="product-machines-empty">${lang === 'th' ? 'เครื่องนี้ยังไม่มีสินค้า' : 'This machine has no products'}</div>`;
+        } else {
+            products.forEach(prod => {
+                const quantity = appData.cart[prod.id] || 0;
+                const isPhysicallyOutOfStock = prod.stock !== -1 && prod.stock <= 0;
+                const isUnavailableByAdmin = !prod.is_available;
+                const prodName = lang === 'en' && prod.name_en ? prod.name_en : prod.name;
+                const card = document.createElement('div');
+                card.className = `product-card ${gridSettings.frameStyle}`;
+                if (isShopClosed || isUnavailableByAdmin || isPhysicallyOutOfStock) card.classList.add('unavailable');
+                card.dataset.id = prod.id;
+
+                let outOfStockHTML = '';
+                if (isUnavailableByAdmin || (isPhysicallyOutOfStock && !isShopClosed)) {
+                    const text = prod.unavailable_message || appData.shopSettings.messageSettings.outOfStockText || translations[lang].outOfStockTemporarily;
+                    outOfStockHTML = `<div class="product-card-out-of-stock">${escapeMachineText(text)}</div>`;
+                }
+                card.innerHTML = `
+                    <span class="product-card-level">LV ${prod.level}</span>
+                    <img src="${escapeMachineText(prod.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeMachineText(prodName)}" class="product-card-icon">
+                    <span class="product-card-name">${escapeMachineText(prodName)}</span>
+                    <div class="product-card-controls"><span class="product-card-quantity">${quantity}</span></div>
+                    ${outOfStockHTML}`;
+                productsGrid.appendChild(card);
+            });
+        }
+        productGrid.appendChild(wrapper);
+        document.getElementById('current-category-name').textContent = machineName;
+    };
+    // ===== END: PRODUCT MACHINES FRONTEND =====
 
 
     // ===== START: UPGRADE CATALOG FRONTEND =====
@@ -5200,6 +5338,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderUpgradeCatalogFrontend();
                         document.getElementById('current-category-name').textContent = translations[lang].upgradeCatalogTitle;
                         applySectionBackground('upgrade');
+                    } else if (catalogPage === 5 && typeof renderProductMachinesFrontend === 'function') {
+                        if (activeProductMachineId) renderProductMachineDetail(activeProductMachineId); else renderProductMachinesFrontend();
+                        document.getElementById('current-category-name').textContent = activeProductMachineId
+                            ? (getProductMachines().find(machine => String(machine.id) === String(activeProductMachineId))?.name || 'เครื่องสินค้า')
+                            : (translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง');
+                        applySectionBackground('product-machines');
                     } else {
                         // Only re-render products when on the normal product page
                         renderProducts();
@@ -5733,13 +5877,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         if (!appData.shopSettings.catalogVisibility) {
-            appData.shopSettings.catalogVisibility = { products: true, upgrade: true, 'coin-packages': true, 'diamond-pass': true, 'voucher-packages': true };
+            appData.shopSettings.catalogVisibility = { products: true, upgrade: true, 'product-machines': true, 'coin-packages': true, 'diamond-pass': true, 'voucher-packages': true };
         }
         const visibility = appData.shopSettings.catalogVisibility;
 
         const items = [
             { key: 'products', name: 'จัดการสินค้า', desc: 'สินค้าทั่วไป', icon: '📦' },
             { key: 'upgrade', name: 'จัดการอัพเกรด', desc: 'ระบบอัพเกรด', icon: '⬆️' },
+            { key: 'product-machines', name: 'สั่งซื้อสินค้าตามเครื่อง', desc: 'เลือกซื้อสินค้าจากเครื่องที่จัดไว้', icon: '🏭' },
             { key: 'coin-packages', name: 'เติมเหรียญ', desc: 'แพ็กเกจเหรียญ', icon: '💰' },
             { key: 'diamond-pass', name: 'เพชร & Pass', desc: 'เพชรและ Farm Pass', icon: '💎' },
             { key: 'voucher-packages', name: 'บัตรกำนัล', desc: 'บัตรกำนัล', icon: '🎟️' }
@@ -5815,6 +5960,16 @@ document.addEventListener('DOMContentLoaded', () => {
             toggle.addEventListener('change', async (e) => {
                 const key = e.target.dataset.mcKey;
                 appData.shopSettings.catalogVisibility[key] = e.target.checked;
+
+                if (!e.target.checked) {
+                    const pageMap = { products: 0, 'coin-packages': 1, 'diamond-pass': 2, 'voucher-packages': 3, upgrade: 4, 'product-machines': 5 };
+                    if (pageMap[key] === catalogPage) {
+                        const order = appData.shopSettings.stockSubMenuOrder || Object.keys(pageMap);
+                        const nextVisibleKey = order.find(item => pageMap[item] !== undefined && appData.shopSettings.catalogVisibility[item] !== false);
+                        catalogPage = pageMap[nextVisibleKey] ?? 0;
+                        activeProductMachineId = null;
+                    }
+                }
 
                 const row = e.target.closest('.mc-item');
                 const status = row.querySelector('.mc-status');
@@ -6066,6 +6221,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderStockSettingsPage();
             } else if (activeSub === 'upgrade') {
                 if (typeof renderAdminUpgradePage === 'function') renderAdminUpgradePage();
+            } else if (activeSub === 'product-machines') {
+                renderAdminProductMachinesPage();
             } else if (activeSub === 'main-control') {
                 renderMainControlPage();
             } else if (activeSub === 'section-backgrounds') {
@@ -8374,6 +8531,212 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     // ===== END: ADMIN VOUCHER CRUD =====
 
+    // ===== START: ADMIN PRODUCT MACHINES =====
+    const getProductMachines = () => {
+        if (!Array.isArray(appData.shopSettings.productMachines)) {
+            appData.shopSettings.productMachines = [];
+        }
+        return appData.shopSettings.productMachines;
+    };
+
+    const escapeMachineText = (value = '') => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    const renderAdminProductMachinesPage = () => {
+        const container = document.getElementById('admin-sub-product-machines');
+        if (!container) return;
+        const machines = getProductMachines();
+
+        container.innerHTML = `
+            <div class="card admin-section product-machines-admin">
+                <div class="product-machines-admin-header">
+                    <div>
+                        <h2>🏭 เครื่องสินค้า</h2>
+                        <p>สร้างเครื่องและจัดสินค้าเข้าเครื่องแต่ละเครื่องให้เป็นหมวดหมู่</p>
+                    </div>
+                    <button type="button" class="btn btn-success" id="add-product-machine-btn">+ เปิดเครื่องเพิ่ม</button>
+                </div>
+                <div class="admin-product-machines-grid">
+                    ${machines.length ? machines.map((machine, index) => {
+                        const selectedCount = Array.isArray(machine.productIds) ? machine.productIds.length : 0;
+                        const isConfigured = machine.name?.trim() && machine.name_en?.trim() && machine.imageUrl?.trim();
+                        return `
+                            <article class="admin-product-machine-card" data-machine-index="${index}">
+                                <div class="admin-product-machine-image">
+                                    ${machine.imageUrl ? `<img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machine.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+                                    <span class="admin-product-machine-placeholder" ${machine.imageUrl ? 'style="display:none"' : ''}>🏭</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>ชื่อเครื่อง (TH)</label>
+                                    <input type="text" class="machine-name-th" value="${escapeMachineText(machine.name)}" placeholder="เช่น เครื่องทำน้ำตาล">
+                                </div>
+                                <div class="form-group">
+                                    <label>ชื่อเครื่อง (EN)</label>
+                                    <input type="text" class="machine-name-en" value="${escapeMachineText(machine.name_en)}" placeholder="เช่น Sugar Mill">
+                                </div>
+                                <div class="form-group">
+                                    <label>รูปภาพ (URL)</label>
+                                    <input type="url" class="machine-image-url" value="${escapeMachineText(machine.imageUrl)}" placeholder="https://example.com/machine.png">
+                                </div>
+                                <div class="admin-product-machine-actions">
+                                    <button type="button" class="btn btn-primary save-product-machine-btn" data-index="${index}">💾 บันทึก</button>
+                                    ${isConfigured ? `<button type="button" class="btn btn-secondary choose-machine-products-btn" data-id="${escapeMachineText(machine.id)}">เลือกสินค้า (${selectedCount})</button>` : ''}
+                                    <button type="button" class="btn btn-danger delete-product-machine-btn" data-index="${index}">ลบ</button>
+                                </div>
+                            </article>`;
+                    }).join('') : '<div class="product-machines-empty">ยังไม่มีเครื่องสินค้า กด “+ เปิดเครื่องเพิ่ม” เพื่อเริ่มต้น</div>'}
+                </div>
+            </div>`;
+
+        container.querySelector('#add-product-machine-btn').onclick = () => {
+            machines.push({ id: `machine_${Date.now()}`, name: '', name_en: '', imageUrl: '', productIds: [] });
+            renderAdminProductMachinesPage();
+        };
+
+        container.querySelectorAll('.save-product-machine-btn').forEach(button => {
+            button.onclick = async () => {
+                const index = Number(button.dataset.index);
+                const card = button.closest('.admin-product-machine-card');
+                const name = card.querySelector('.machine-name-th').value.trim();
+                const nameEn = card.querySelector('.machine-name-en').value.trim();
+                const imageUrl = card.querySelector('.machine-image-url').value.trim();
+                if (!name || !nameEn || !imageUrl) {
+                    Notify.warning('ข้อมูลไม่ครบ', 'กรุณาระบุชื่อภาษาไทย ภาษาอังกฤษ และ URL รูปภาพ');
+                    return;
+                }
+                Object.assign(machines[index], { name, name_en: nameEn, imageUrl });
+                await saveState();
+                addLog('Product Machine Saved', `Machine: ${name}`);
+                Notify.success('บันทึกเครื่องสำเร็จ', `บันทึก “${name}” แล้ว`);
+                renderAdminProductMachinesPage();
+            };
+        });
+
+        container.querySelectorAll('.choose-machine-products-btn').forEach(button => {
+            button.onclick = () => openProductMachinePicker(button.dataset.id);
+        });
+
+        container.querySelectorAll('.delete-product-machine-btn').forEach(button => {
+            button.onclick = async () => {
+                const index = Number(button.dataset.index);
+                const machine = machines[index];
+                const confirmed = await Notify.confirm({
+                    title: 'ลบเครื่องสินค้า',
+                    message: `ต้องการลบ “${machine.name || 'เครื่องนี้'}” หรือไม่?`,
+                    type: 'warning',
+                    confirmText: 'ลบเครื่อง',
+                    cancelText: 'ยกเลิก'
+                });
+                if (!confirmed) return;
+                machines.splice(index, 1);
+                await saveState();
+                renderAdminProductMachinesPage();
+            };
+        });
+    };
+
+    const openProductMachinePicker = (machineId) => {
+        const machine = getProductMachines().find(item => String(item.id) === String(machineId));
+        if (!machine) return;
+
+        const allowedCategories = new Set([
+            'วัตถุดิบ',
+            'อุปกรณ์ทำลายล้าง',
+            'แท่งแร่ & อัญมณี',
+            'อาหารสัตว์',
+            'ผัก & ผลไม้'
+        ]);
+        const eligibleCategories = appData.categories.filter(category => allowedCategories.has(category.name));
+        const eligibleCategoryIds = new Set(eligibleCategories.map(category => String(category.id)));
+        const eligibleProducts = appData.allProducts.filter(product => !product.hidden && eligibleCategoryIds.has(String(product.category_id)));
+        const eligibleProductIds = new Set(eligibleProducts.map(product => String(product.id)));
+        const selectedIds = new Set((machine.productIds || []).map(String).filter(id => eligibleProductIds.has(id)));
+
+        const overlay = document.createElement('div');
+        overlay.className = 'machine-product-picker-overlay';
+        overlay.innerHTML = `
+            <div class="machine-product-picker-modal">
+                <div class="machine-product-picker-header">
+                    <div><h3>เลือกสินค้าเข้า ${escapeMachineText(machine.name)}</h3><p>เลือกได้หลายรายการจากหมวดสินค้าที่กำหนด</p></div>
+                    <button type="button" class="machine-product-picker-close" aria-label="ปิด">×</button>
+                </div>
+                <div class="machine-product-picker-search">
+                    <input type="search" placeholder="พิมพ์ชื่อสินค้า..." aria-label="ค้นหาสินค้า">
+                    <span class="machine-picker-count"></span>
+                </div>
+                <div class="machine-product-picker-list"></div>
+                <div class="machine-product-picker-footer">
+                    <button type="button" class="btn btn-secondary machine-picker-cancel">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary machine-picker-save">บันทึกสินค้าที่เลือก</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const list = overlay.querySelector('.machine-product-picker-list');
+        const count = overlay.querySelector('.machine-picker-count');
+        const search = overlay.querySelector('input[type="search"]');
+
+        const updateCount = () => { count.textContent = `เลือกแล้ว ${selectedIds.size} รายการ`; };
+        const renderPickerProducts = () => {
+            const query = search.value.trim().toLocaleLowerCase('th-TH');
+            list.innerHTML = '';
+            eligibleCategories.forEach(category => {
+                const products = eligibleProducts.filter(product => {
+                    if (String(product.category_id) !== String(category.id)) return false;
+                    const searchable = `${product.name || ''} ${product.name_en || ''}`.toLocaleLowerCase('th-TH');
+                    return !query || searchable.includes(query);
+                });
+                if (!products.length) return;
+                const section = document.createElement('section');
+                section.className = 'machine-picker-category';
+                section.innerHTML = `<h4>${escapeMachineText(category.name)} <span>${products.length}</span></h4><div class="machine-picker-products"></div>`;
+                const grid = section.querySelector('.machine-picker-products');
+                products.forEach(product => {
+                    const selected = selectedIds.has(String(product.id));
+                    const item = document.createElement('article');
+                    item.className = `machine-picker-product${selected ? ' selected' : ''}`;
+                    item.innerHTML = `
+                        <img src="${escapeMachineText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeMachineText(product.name)}">
+                        <div><strong>${escapeMachineText(product.name)}</strong><small>${escapeMachineText(product.name_en || '')}</small></div>
+                        <button type="button" class="btn btn-small ${selected ? 'btn-success' : 'btn-secondary'}">${selected ? 'เลือกแล้ว' : 'เลือก'}</button>`;
+                    item.querySelector('button').onclick = () => {
+                        const id = String(product.id);
+                        if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+                        renderPickerProducts();
+                        updateCount();
+                    };
+                    grid.appendChild(item);
+                });
+                list.appendChild(section);
+            });
+            if (!list.children.length) list.innerHTML = '<div class="product-machines-empty">ไม่พบสินค้าที่ค้นหา</div>';
+        };
+
+        const closePicker = () => overlay.remove();
+        overlay.querySelector('.machine-product-picker-close').onclick = closePicker;
+        overlay.querySelector('.machine-picker-cancel').onclick = closePicker;
+        overlay.addEventListener('click', event => { if (event.target === overlay) closePicker(); });
+        search.addEventListener('input', renderPickerProducts);
+        overlay.querySelector('.machine-picker-save').onclick = async () => {
+            const productById = new Map(eligibleProducts.map(product => [String(product.id), product.id]));
+            machine.productIds = [...selectedIds].filter(id => productById.has(id)).map(id => productById.get(id));
+            await saveState();
+            addLog('Product Machine Items Updated', `Machine: ${machine.name}, products: ${machine.productIds.length}`);
+            Notify.success('บันทึกสินค้าแล้ว', `${machine.name}: ${machine.productIds.length} รายการ`);
+            closePicker();
+            renderAdminProductMachinesPage();
+        };
+
+        updateCount();
+        renderPickerProducts();
+        search.focus();
+    };
+    // ===== END: ADMIN PRODUCT MACHINES =====
+
     // ===== START: ADMIN UPGRADE CRUD =====
     const renderAdminUpgradePage = () => {
         const container = document.getElementById('admin-sub-upgrade');
@@ -9954,7 +10317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (reorderMenuContext === 'stock') {
             // NEW: Stock submenu / Customer View reordering
             // We only reorder the 4 specific items that affect the customer view
-            menuList = appData.shopSettings.stockSubMenuOrder || ['coin-packages', 'diamond-pass', 'voucher-packages', 'products'];
+            menuList = appData.shopSettings.stockSubMenuOrder || ['categories', 'coin-packages', 'diamond-pass', 'voucher-packages', 'upgrade', 'product-machines', 'products'];
             nameMap = SUB_MENUS['stock'];
         }
 
@@ -13931,6 +14294,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (catalogPage === 4) {
                 if (typeof renderUpgradeCatalogFrontend === 'function') renderUpgradeCatalogFrontend();
                 document.getElementById('current-category-name').textContent = "อัพเกรด";
+            } else if (catalogPage === 5) {
+                if (typeof renderProductMachinesFrontend === 'function') renderProductMachinesFrontend();
+                document.getElementById('current-category-name').textContent = "สั่งซื้อสินค้าตามเครื่อง";
+                applySectionBackground('product-machines');
             }
         }
 
@@ -21552,6 +21919,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.shopSettings.sectionBackgrounds = {
                 products: { imageUrl: '', blur: 0, opacity: 0.3 },
                 upgrade: { imageUrl: '', blur: 0, opacity: 0.3 },
+                'product-machines': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'coin-packages': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'diamond-pass': { imageUrl: '', blur: 0, opacity: 0.3 },
                 'voucher-packages': { imageUrl: '', blur: 0, opacity: 0.3 }
@@ -21561,6 +21929,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sections = [
             { key: 'products', label: '🛒 สินค้าทั่วไป', desc: 'พื้นหลังสำหรับหน้าสินค้าหลัก' },
             { key: 'upgrade', label: '⬆️ จัดการอัพเกรด', desc: 'พื้นหลังสำหรับหน้าอัพเกรด (โรงนา/ยุ้งฉาง/ขยายพื้นที่)' },
+            { key: 'product-machines', label: '🏭 สั่งซื้อสินค้าตามเครื่อง', desc: 'พื้นหลังสำหรับหน้าเครื่องสินค้าและสินค้าภายในเครื่อง' },
             { key: 'coin-packages', label: '🪙 เติมเหรียญ', desc: 'พื้นหลังสำหรับหน้าแพ็คเกจเหรียญ' },
             { key: 'diamond-pass', label: '💎 เพชร & Pass', desc: 'พื้นหลังสำหรับหน้าเพชรและ Farm Pass' },
             { key: 'voucher-packages', label: '🎫 บัตรกำนัล', desc: 'พื้นหลังสำหรับหน้าบัตรกำนัล' }
