@@ -3913,7 +3913,8 @@ document.addEventListener('DOMContentLoaded', () => {
         upgradeState = { selectedMenu: null, limitValue: null, availableLimit: null, purchaseMode: null, itemQuantities: {} };
 
         const settings = appData.shopSettings.upgradeSettings || {};
-        const menus = (settings.menus || []).filter(menu => menu.visible !== false);
+        const allMenus = settings.menus || [];
+        const menus = allMenus.filter(menu => menu.visible !== false);
         const lang = appData.shopSettings.language;
 
         const container = document.createElement('div');
@@ -3923,15 +3924,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Menu Cards
         const menuGrid = document.createElement('div');
-        menuGrid.className = 'upgrade-menu-grid';
+        const hasHiddenMenus = menus.length < allMenus.length;
+        menuGrid.className = `upgrade-menu-grid${hasHiddenMenus ? ' upgrade-menu-grid-single-row' : ''}`;
+        menuGrid.style.setProperty('--visible-upgrade-menus', Math.max(menus.length, 1));
         const menuEmojis = { barn: '🏠', silo: '🏗️', land: '🌍', train: '🚂' };
 
         menus.forEach(menu => {
             const card = document.createElement('div');
             card.className = 'upgrade-menu-card';
-            const menuIconHtml = menu.icon ? `<img src="${menu.icon}" style="width:100px;height:100px;border-radius:10px;object-fit:cover;margin:0 auto;">` : `<div style="font-size:64px;">${menu.emoji || '📦'}</div>`;
+            const menuIconHtml = menu.icon ? `<img src="${menu.icon}" class="upgrade-menu-image" alt="">` : `<div class="upgrade-menu-fallback">${menu.emoji || '📦'}</div>`;
             card.innerHTML = `
-                <div class="upgrade-menu-emoji" style="display:flex; justify-content:center; align-items:center; height:100px;">${menuIconHtml}</div>
+                <div class="upgrade-menu-emoji">${menuIconHtml}</div>
                 <div class="upgrade-menu-name" style="margin-top: 12px; margin-bottom: 8px;">${lang === 'en' && menu.name_en ? menu.name_en : menu.name}</div>
             `;
             card.addEventListener('click', () => renderUpgradeMenuDetail(menu));

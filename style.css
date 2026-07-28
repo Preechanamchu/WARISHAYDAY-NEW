@@ -26152,6 +26152,17 @@ body.dark-mode .upg-mode-tab {
     width: 100%;
 }
 
+/* Keep every visible upgrade menu on one responsive row when any menu is hidden. */
+.upgrade-menu-grid.upgrade-menu-grid-single-row {
+    grid-template-columns: repeat(var(--visible-upgrade-menus), minmax(0, 1fr));
+    gap: clamp(6px, 1.6vw, 16px);
+}
+
+.upgrade-menu-grid-single-row .upgrade-menu-card {
+    min-width: 0;
+    padding: clamp(7px, 1.8vw, 14px) clamp(5px, 1.6vw, 16px);
+}
+
 .upgrade-menu-card {
     background: var(--card-bg, #fff);
     border: 2px solid var(--border-color, #e8e8e8);
@@ -26172,7 +26183,36 @@ body.dark-mode .upg-mode-tab {
 .upgrade-menu-emoji {
     font-size: 3.5rem;
     margin-bottom: 8px; /* ลดจาก 15px ชดเชยการ์ดให้ขนาดเท่าเดิม */
-    display: block;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upgrade-menu-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    object-fit: cover;
+    max-width: 100%;
+}
+
+.upgrade-menu-fallback {
+    font-size: 64px;
+    line-height: 1;
+}
+
+.upgrade-menu-grid-single-row .upgrade-menu-emoji {
+    height: clamp(48px, 16vw, 100px);
+}
+
+.upgrade-menu-grid-single-row .upgrade-menu-image {
+    width: clamp(44px, 16vw, 100px);
+    height: clamp(44px, 16vw, 100px);
+}
+
+.upgrade-menu-grid-single-row .upgrade-menu-fallback {
+    font-size: clamp(34px, 11vw, 64px);
 }
 
 .upgrade-menu-name {
@@ -26181,6 +26221,13 @@ body.dark-mode .upg-mode-tab {
     color: var(--text-primary, #333);
     margin-bottom: 4px;
     font-family: var(--global-font-family, sans-serif);
+}
+
+.upgrade-menu-grid-single-row .upgrade-menu-name {
+    min-width: 0;
+    font-size: clamp(0.68rem, 2.8vw, 1rem);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
 }
 
 .upgrade-menu-items-count {
