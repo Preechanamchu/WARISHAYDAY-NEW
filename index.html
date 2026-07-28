@@ -222,6 +222,73 @@
     </div>
     <!-- ===== END: HAYDAY Loading Screen ===== -->
 
+    <script>
+        // Start the loading animation as soon as its markup is available. Keeping
+        // this controller outside the main bundle prevents parsing/API work from
+        // leaving the first frame stuck at 0%.
+        (() => {
+            const screen = document.getElementById('loading-screen');
+            const bar = document.getElementById('progress-bar');
+            const label = document.getElementById('percentage-text');
+            if (!screen || !bar || !label) return;
+
+            let progress = 0;
+            let displayedValue = -1;
+            let lastFrame = performance.now();
+            let finishing = false;
+            let frameId = 0;
+
+            const paint = (value) => {
+                const safeValue = Math.min(100, Math.max(0, value));
+                bar.style.transform = `scaleX(${safeValue / 100})`;
+                const roundedValue = Math.floor(safeValue);
+                if (roundedValue !== displayedValue) {
+                    displayedValue = roundedValue;
+                    label.textContent = `${roundedValue}%`;
+                }
+            };
+
+            const tick = (now) => {
+                const delta = Math.min(now - lastFrame, 50);
+                lastFrame = now;
+
+                if (finishing) {
+                    progress = Math.min(100, progress + delta * 0.24);
+                } else {
+                    // Move quickly at first, then wait smoothly near 90% for data.
+                    progress += (92 - progress) * Math.min(0.035, delta / 900);
+                }
+
+                paint(progress);
+                if (progress < 100) {
+                    frameId = requestAnimationFrame(tick);
+                    return;
+                }
+
+                window.setTimeout(() => {
+                    screen.classList.add('hide-loading');
+                    screen.addEventListener('transitionend', () => {
+                        screen.style.display = 'none';
+                        document.body.style.overflow = 'auto';
+                        window.dispatchEvent(new CustomEvent('hayday:loader-hidden'));
+                    }, { once: true });
+                }, 100);
+            };
+
+            window.HaydayLoader = {
+                finish() {
+                    if (finishing) return;
+                    finishing = true;
+                    lastFrame = performance.now();
+                    if (!frameId) frameId = requestAnimationFrame(tick);
+                }
+            };
+
+            paint(0);
+            frameId = requestAnimationFrame(tick);
+        })();
+    </script>
+
 
     <div id="background-overlay"></div>
 
@@ -1620,10 +1687,10 @@
                                     <div class="form-group">
                                         <label for="copyright-font-size">
                                             ขนาดฟอนต์
-                                            <span class="range-value-display" id="copyright-font-size-value">1rem</span>
+                                            <span class="range-value-display" id="copyright-font-size-value">16px</span>
                                         </label>
-                                        <input type="range" id="copyright-font-size" min="0.5" max="2.0" step="0.1"
-                                            value="1.0">
+                                        <input type="range" id="copyright-font-size" min="4" max="32" step="1"
+                                            value="16">
                                     </div>
                                     <div class="form-group">
                                         <label for="copyright-opacity">

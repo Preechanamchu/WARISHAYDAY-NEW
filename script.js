@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dbCategoryLowStockThresholds: {},
             copyrightText: "Copyright © 2025 HAYDAY",
-            copyrightFontSize: 1.0,
+            copyrightFontSize: 16,
             copyrightOpacity: 0.5,
             shopEnabled: true,
             announcementEnabled: false,
@@ -1410,8 +1410,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Preload upgrade assets for instant display
-                preloadUpgradeAssets();
+                // Preload large media only after the loader has left the screen.
+                // Starting video/image decoding during boot competes with the
+                // login transition and causes visible dropped frames on mobile.
+                const scheduleUpgradePreload = () => {
+                    if ('requestIdleCallback' in window) {
+                        window.requestIdleCallback(preloadUpgradeAssets, { timeout: 3000 });
+                    } else {
+                        window.setTimeout(preloadUpgradeAssets, 800);
+                    }
+                };
+                if (document.getElementById('loading-screen')?.style.display === 'none') {
+                    scheduleUpgradePreload();
+                } else {
+                    window.addEventListener('hayday:loader-hidden', scheduleUpgradePreload, { once: true });
+                }
             }
 
         } catch (error) {
@@ -1573,6 +1586,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const backToTopBtn = document.getElementById('back-to-top-btn');
     const adminMenuContainer = document.querySelector('.admin-menu');
     const copyrightFooter = document.getElementById('copyright-footer');
+    const getCopyrightFontSizePx = (value) => {
+        const numericValue = Number.parseFloat(value);
+        if (!Number.isFinite(numericValue)) return 16;
+        // Backward compatibility: older saved values used rem units.
+        const pixels = numericValue <= 3 ? numericValue * 16 : numericValue;
+        return Math.min(32, Math.max(4, Math.round(pixels)));
+    };
     const festivalCanvas = document.getElementById('festival-canvas');
     const festivalCtx = festivalCanvas.getContext('2d');
     const floatingButtonsContainer = document.querySelector('.floating-buttons-container');
@@ -1861,6 +1881,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         copyrightFooter.textContent = appData.shopSettings.copyrightText;
         copyrightFooter.style.opacity = appData.shopSettings.copyrightOpacity;
+        copyrightFooter.style.fontSize = `${getCopyrightFontSizePx(appData.shopSettings.copyrightFontSize)}px`;
 
         if (!isPreview) {
             applyBackground();
@@ -3892,7 +3913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         upgradeState = { selectedMenu: null, limitValue: null, availableLimit: null, purchaseMode: null, itemQuantities: {} };
 
         const settings = appData.shopSettings.upgradeSettings || {};
-        const menus = settings.menus || [];
+        const menus = (settings.menus || []).filter(menu => menu.visible !== false);
         const lang = appData.shopSettings.language;
 
         const container = document.createElement('div');
@@ -5920,8 +5941,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('logo-effect-color').value = logoEffect.color;
 
                 document.getElementById('copyright-text').value = appData.shopSettings.copyrightText;
-                document.getElementById('copyright-font-size').value = appData.shopSettings.copyrightFontSize || 1.0;
-                document.getElementById('copyright-font-size-value').textContent = (appData.shopSettings.copyrightFontSize || 1.0) + 'rem';
+                const copyrightFontSizePx = getCopyrightFontSizePx(appData.shopSettings.copyrightFontSize);
+                document.getElementById('copyright-font-size').value = copyrightFontSizePx;
+                document.getElementById('copyright-font-size-value').textContent = copyrightFontSizePx + 'px';
                 document.getElementById('copyright-opacity').value = appData.shopSettings.copyrightOpacity;
 
                 // Copyright Font Size Listener
@@ -5934,9 +5956,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     newCfInput.addEventListener('input', (e) => {
                         const val = e.target.value;
                         appData.shopSettings.copyrightFontSize = parseFloat(val);
-                        document.getElementById('copyright-font-size-value').textContent = val + 'rem';
+                        document.getElementById('copyright-font-size-value').textContent = val + 'px';
                         const cpFooter = document.getElementById('copyright-footer');
-                        if (cpFooter) cpFooter.style.fontSize = val + 'rem';
+                        if (cpFooter) cpFooter.style.fontSize = val + 'px';
                     });
                 }
 
@@ -7748,6 +7770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         appData.shopSettings.copyrightText = document.getElementById('copyright-text').value;
+        appData.shopSettings.copyrightFontSize = getCopyrightFontSizePx(document.getElementById('copyright-font-size').value);
         appData.shopSettings.copyrightOpacity = document.getElementById('copyright-opacity').value;
 
         await saveState();
@@ -8392,11 +8415,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             return `
                                 <div class="admin-pricing-group">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
                                         <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin: 0; color: var(--primary-color);">
                                             ${menuIconHtml} หมวด: ${menu.name}
                                         </h3>
                                         <div style="display: flex; gap: 6px; align-items: center;">
+                                            <div style="display: flex; align-items: center; gap: 6px; margin-right: 4px;">
+                                                <span class="upgrade-menu-visibility-label" style="font-size: 0.72rem; font-weight: 600; color: ${menu.visible !== false ? 'var(--primary-color)' : 'var(--danger-color)'}; white-space: nowrap;">${menu.visible !== false ? 'แสดงหน้าหลัก' : 'ซ่อนหน้าหลัก'}</span>
+                                                <label class="toggle-switch" title="ซ่อนหรือแสดงหมวดนี้บนหน้าหลัก">
+                                                    <input type="checkbox" class="upgrade-menu-visibility-toggle" data-menu="${menuIndex}" aria-label="แสดงหมวด ${menu.name} บนหน้าหลัก" ${menu.visible !== false ? 'checked' : ''}>
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
                                             <button class="btn btn-primary save-menu-header-btn" data-mi="${menuIndex}" style="height: 32px; padding: 0 12px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;">💾 บันทึก</button>
                                             ${!isBaseMenu ? `<button class="admin-delete-icon-btn delete-menu-btn" data-mi="${menuIndex}" title="ลบหมวด">🗑️</button>` : ''}
                                         </div>
@@ -8636,6 +8666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         name_en: 'New Category',
                         emoji: '📦',
                         icon: '',
+                        visible: true,
                         items: [],
                         enabledModes,
                         pricingFields,
@@ -8654,6 +8685,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     syncStateFromDOM();
                     editingMenus[mi].items.push({ id: 'item_' + Date.now(), name: 'ชื่อสินค้า', icon: '' });
                     drawSettings(); drawPricing();
+                };
+            });
+
+            settingsCard.querySelectorAll('.upgrade-menu-visibility-toggle').forEach(toggle => {
+                toggle.onchange = () => {
+                    const menuIndex = parseInt(toggle.dataset.menu);
+                    if (!editingMenus[menuIndex]) return;
+                    editingMenus[menuIndex].visible = toggle.checked;
+                    const label = toggle.closest('div').querySelector('.upgrade-menu-visibility-label');
+                    if (label) {
+                        label.textContent = toggle.checked ? 'แสดงหน้าหลัก' : 'ซ่อนหน้าหลัก';
+                        label.style.color = toggle.checked ? 'var(--primary-color)' : 'var(--danger-color)';
+                    }
                 };
             });
 
@@ -8898,6 +8942,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const syncStateFromDOM = () => {
+            document.querySelectorAll('.upgrade-menu-visibility-toggle').forEach(toggle => {
+                const mi = parseInt(toggle.dataset.menu);
+                if (editingMenus[mi]) editingMenus[mi].visible = toggle.checked;
+            });
             // Read menu fields
             document.querySelectorAll('.upgrade-menu-field-input').forEach(inp => {
                 const mi = parseInt(inp.dataset.menu);
@@ -11655,41 +11703,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const runAndHideLoader = () => {
-        const progressBar = document.getElementById("progress-bar");
-        const percentageText = document.getElementById("percentage-text");
         const loadingScreen = document.getElementById("loading-screen");
 
-        let currentProgress = 0;
-
-        const simulateLoading = setInterval(() => {
-            const increment = Math.floor(Math.random() * 3) + 1;
-            currentProgress += increment;
-
-            if (currentProgress > 100) {
-                currentProgress = 100;
+        const revealReadyView = () => {
+            if (views.customer.classList.contains('active')) {
+                adminGearIcon.style.display = isAdminLoggedIn || isCustomerViewOnly() ? 'none' : 'flex';
             }
+        };
 
-            if (progressBar) progressBar.style.width = currentProgress + "%";
-            if (percentageText) percentageText.innerText = currentProgress + "%";
+        if (window.HaydayLoader) {
+            window.addEventListener('hayday:loader-hidden', revealReadyView, { once: true });
+            window.HaydayLoader.finish();
+            return;
+        }
 
-            if (currentProgress === 100) {
-                clearInterval(simulateLoading); 
-                
-                setTimeout(() => {
-                    if (loadingScreen) loadingScreen.classList.add("hide-loading");
-                    
-                    setTimeout(() => {
-                        if (loadingScreen) loadingScreen.style.display = "none";
-                        document.body.style.overflow = "auto";
-                        
-                        if (views.customer.classList.contains('active')) {
-                            adminGearIcon.style.display = isAdminLoggedIn || isCustomerViewOnly() ? 'none' : 'flex';
-                        }
-                    }, 800); 
-
-                }, 500); 
-            }
-        }, 60);
+        // Safe fallback for browsers that blocked the lightweight controller.
+        if (loadingScreen) {
+            loadingScreen.classList.add('hide-loading');
+            window.setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                revealReadyView();
+            }, 500);
+        }
     };
 
     const renderMessageEditor = () => {
@@ -22783,7 +22819,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const cpFooter = document.getElementById('copyright-footer');
         if (cpFooter && appData && appData.shopSettings) {
-            cpFooter.style.fontSize = (appData.shopSettings.copyrightFontSize || 1.0) + 'rem';
+            cpFooter.style.fontSize = getCopyrightFontSizePx(appData.shopSettings.copyrightFontSize) + 'px';
         }
     }, 1000);
 
