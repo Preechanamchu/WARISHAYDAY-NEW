@@ -323,9 +323,9 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
 }
 
 .hayday-loader-card {
-    width: min(470px, 86vw);
-    max-height: calc(100svh - 54px);
-    padding: clamp(17px, 2.7vw, 25px) clamp(18px, 3.4vw, 30px) clamp(16px, 2.5vw, 22px);
+    width: min(440px, 82vw);
+    max-height: calc(100svh - 64px);
+    padding: clamp(15px, 2.5vw, 22px) clamp(17px, 3vw, 27px) clamp(14px, 2.3vw, 20px);
     overflow: hidden;
     border: 3px solid rgba(255, 255, 255, 0.9);
     border-radius: clamp(30px, 5vw, 46px);
@@ -379,7 +379,7 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
 .waris-loader-showcase {
     position: relative;
     z-index: 2;
-    width: min(92%, 405px);
+    width: min(89%, 380px);
     margin: clamp(-8px, -1vh, 0px) auto -2px;
     animation: warisShopFloat 3.8s ease-in-out infinite;
 }
@@ -387,7 +387,7 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
 .waris-loader-showcase svg {
     display: block;
     width: 100%;
-    max-height: clamp(128px, 22vh, 175px);
+    max-height: clamp(120px, 20vh, 160px);
 }
 
 .waris-loader-brand {
@@ -401,7 +401,7 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
 .waris-loader-brand h1 {
     margin: -2px 0 10px;
     color: #4da934;
-    font-size: clamp(1.9rem, 7.4vw, 3.15rem);
+    font-size: clamp(1.8rem, 7vw, 2.95rem);
     font-weight: 950;
     line-height: 0.95;
     letter-spacing: -0.065em;
@@ -449,7 +449,7 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: clamp(6px, 1.6vw, 12px);
-    width: min(94%, 405px);
+    width: min(91%, 380px);
     margin: 0 auto clamp(14px, 2.4vh, 21px);
 }
 
@@ -720,19 +720,19 @@ body.dark-mode .confirm-modal-btn.btn-cancel { color: #d9e5e0; background: #3544
 
 @media (max-width: 560px) {
     .hayday-loader-card {
-        width: 86vw;
-        padding: 13px 15px 14px;
+        width: 82vw;
+        padding: 12px 14px 13px;
         border-width: 2px;
         border-radius: 30px;
     }
 
     .hayday-loader-live { padding: 5px 9px; font-size: 0.54rem; }
-    .waris-loader-showcase { width: 88%; margin-top: -10px; }
-    .waris-loader-showcase svg { max-height: 140px; }
+    .waris-loader-showcase { width: 85%; margin-top: -11px; }
+    .waris-loader-showcase svg { max-height: 130px; }
     .waris-loader-brand h1 { margin-bottom: 8px; -webkit-text-stroke-width: 1.5px; text-shadow: 0 4px 0 #277a34, 0 7px 12px rgba(45, 109, 48, 0.18); }
     .waris-loader-tagline { padding: 6px 13px; }
     .waris-loader-brand p { margin: 7px 0 10px; }
-    .waris-loader-products { width: 90%; margin-bottom: 11px; }
+    .waris-loader-products { width: 88%; margin-bottom: 10px; }
     .waris-product-icon { border-radius: 14px; }
     .waris-loader-progress-row { gap: 8px; }
     .waris-loader-progress-row .hayday-loader-progress-track { height: 14px; }
