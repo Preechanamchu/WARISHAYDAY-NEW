@@ -1354,3 +1354,123 @@ body.dark-mode #cart-details .summary-line {
         animation: none;
     }
 }
+
+/* ================================================================
+   CUSTOMER UI FOLLOW-UP: FILTER, ORDER DOCK, FIXED HELP BUTTON COLOR
+   ================================================================ */
+
+/* Keep the level sorting menu above the product section */
+#customer-view #product-controls-wrapper {
+    position: relative;
+    z-index: 80;
+    overflow: visible;
+}
+
+#customer-view .search-and-filter-container,
+#customer-view .filter-container {
+    position: relative;
+    z-index: 90;
+    overflow: visible;
+}
+
+#customer-view .filter-dropdown-content {
+    top: calc(100% + 9px);
+    right: 0;
+    z-index: 999;
+    min-width: 178px;
+    overflow: hidden;
+    padding: 6px;
+    border: 1px solid rgba(64, 115, 102, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 16px 34px rgba(36, 75, 65, 0.18), 0 4px 12px rgba(36, 75, 65, 0.08), inset 0 1px #fff;
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    animation: softFilterMenuIn 0.22s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+#customer-view .filter-dropdown-content a {
+    padding: 9px 11px;
+    color: #526a63;
+    border-radius: 9px;
+    font-size: 0.74rem;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+#customer-view .filter-dropdown-content a:hover {
+    color: #118b70;
+    background: linear-gradient(135deg, #eefaf6, #e2f6f2);
+    transform: translateX(2px);
+}
+
+#customer-view #product-view-container,
+#customer-view #product-list-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* Solid bottom dock: products can no longer show through or beneath it */
+#order-summary,
+#order-summary[data-layout="buttons-top"] {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 20px 20px 0 0;
+    background: #ffffff;
+    box-shadow: 0 -12px 30px rgba(36, 75, 65, 0.13), 0 -2px 8px rgba(36, 75, 65, 0.06), inset 0 1px #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+body.dark-mode #order-summary,
+body.dark-mode #order-summary[data-layout="buttons-top"] {
+    background: #24312e;
+    box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.36), inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* These tutorial buttons must stay red regardless of the selected theme */
+#order-modal #order-details button[onclick*="openTagTutorialModal"],
+#order-modal #order-details button[onclick*="openMailTutorialModal"] {
+    color: #fff !important;
+    border: 1px solid rgba(180, 24, 53, 0.16) !important;
+    background: linear-gradient(135deg, #f45468, #dc294e) !important;
+    box-shadow: 0 7px 16px rgba(210, 41, 72, 0.24), inset 0 1px rgba(255, 255, 255, 0.24) !important;
+}
+
+#order-modal #order-details button[onclick*="openTagTutorialModal"]:hover,
+#order-modal #order-details button[onclick*="openMailTutorialModal"]:hover {
+    color: #fff !important;
+    background: linear-gradient(135deg, #ed4158, #c91f43) !important;
+    box-shadow: 0 10px 20px rgba(202, 31, 66, 0.3), inset 0 1px rgba(255, 255, 255, 0.26) !important;
+}
+
+@keyframes softFilterMenuIn {
+    from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.98); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@media (max-width: 600px) {
+    #order-summary,
+    #order-summary[data-layout="buttons-top"] {
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+    }
+
+    #customer-view .filter-dropdown-content {
+        right: 0;
+        min-width: 165px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #customer-view .filter-dropdown-content {
+        animation: none;
+    }
+}
