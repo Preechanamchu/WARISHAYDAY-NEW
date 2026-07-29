@@ -12332,6 +12332,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // --- END: Update for Order Bar Sliders ---
 
+            // Slogan size is stored as rem for backward compatibility,
+            // but display it as pixels so the 4px minimum is explicit in Admin Panel.
+            if (inputElement.id === 'slogan-font-size') {
+                const pixelValue = Math.round(value * 16 * 10) / 10;
+                displayElement.textContent = `${pixelValue}px`;
+                return;
+            }
+
             if (inputElement.id.includes('font-size') && !inputElement.id.includes('perc')) {
                 unit = 'rem'; isPercentageBased = false;
             } else if (inputElement.id.includes('gap') || inputElement.id.includes('blur') || inputElement.id.includes('offset') || (inputElement.id.includes('size') && !inputElement.id.includes('perc'))) {
