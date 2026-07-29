@@ -71,7 +71,9 @@ const syncProductMachines = async (client, machines) => {
   const uniqueMachines = [];
   const seenIds = new Set();
   machines.forEach((machine, index) => {
-    const normalized = normalizeMachine(machine, index);
+    // The array order from Admin drag-and-drop is authoritative when saving.
+    // Override any stale sortOrder that may have been loaded from the database.
+    const normalized = normalizeMachine({ ...machine, sortOrder: index }, index);
     if (seenIds.has(normalized.id)) return;
     seenIds.add(normalized.id);
     uniqueMachines.push(normalized);

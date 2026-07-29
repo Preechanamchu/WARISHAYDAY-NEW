@@ -8565,15 +8565,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h2>🏭 เครื่องสินค้า</h2>
                         <p>สร้างเครื่องและจัดสินค้าเข้าเครื่องแต่ละเครื่องให้เป็นหมวดหมู่</p>
                     </div>
-                    <button type="button" class="btn btn-success" id="add-product-machine-btn">+ เปิดเครื่องเพิ่ม</button>
+                    <div class="product-machines-header-actions">
+                        <button type="button" class="btn btn-success" id="add-product-machine-btn">+ เปิดเครื่องเพิ่ม</button>
+                        <button type="button" class="btn btn-primary" id="save-product-machine-order-btn" disabled>💾 บันทึกลำดับ</button>
+                    </div>
                 </div>
                 <div class="admin-product-machines-grid">
                     ${machines.length ? machines.map((machine, index) => {
                         const selectedCount = Array.isArray(machine.productIds) ? machine.productIds.length : 0;
                         const isConfigured = machine.name?.trim() && machine.name_en?.trim() && machine.imageUrl?.trim();
                         return `
-                            <article class="admin-product-machine-card" data-machine-index="${index}">
-                                <div class="admin-product-machine-image">
+                            <article class="admin-product-machine-card" data-machine-index="${index}" data-machine-id="${escapeMachineText(machine.id)}">
+                                <div class="admin-product-machine-image machine-sort-handle" title="กดค้างแล้วลากเพื่อจัดลำดับ" aria-label="ลากเพื่อจัดลำดับเครื่องสินค้า">
                                     ${machine.imageUrl ? `<img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machine.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
                                     <span class="admin-product-machine-placeholder" ${machine.imageUrl ? 'style="display:none"' : ''}>🏭</span>
                                 </div>
@@ -8590,10 +8593,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <input type="url" class="machine-image-url" value="${escapeMachineText(machine.imageUrl)}" placeholder="https://example.com/machine.png">
                                 </div>
                                 <div class="admin-product-machine-actions">
-                                    <button type="button" class="btn btn-primary save-product-machine-btn" data-index="${index}">💾 บันทึก</button>
+                                    <button type="button" class="btn btn-primary save-product-machine-btn" data-id="${escapeMachineText(machine.id)}">💾 บันทึก</button>
                                     ${isConfigured ? `<button type="button" class="btn btn-secondary choose-machine-products-btn" data-id="${escapeMachineText(machine.id)}">เลือกสินค้า (${selectedCount})</button>` : ''}
                                     ${isConfigured ? `<button type="button" class="btn btn-info view-machine-products-btn" data-id="${escapeMachineText(machine.id)}">ดูสินค้า (${selectedCount})</button>` : ''}
-                                    <button type="button" class="btn btn-danger delete-product-machine-btn" data-index="${index}">ลบ</button>
+                                    <button type="button" class="btn btn-danger delete-product-machine-btn" data-id="${escapeMachineText(machine.id)}">ลบ</button>
                                 </div>
                             </article>`;
                     }).join('') : '<div class="product-machines-empty">ยังไม่มีเครื่องสินค้า กด “+ เปิดเครื่องเพิ่ม” เพื่อเริ่มต้น</div>'}
@@ -8601,13 +8604,87 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
 
         container.querySelector('#add-product-machine-btn').onclick = () => {
-            machines.push({ id: `machine_${Date.now()}`, name: '', name_en: '', imageUrl: '', productIds: [] });
+            getProductMachines().push({ id: `machine_${Date.now()}`, name: '', name_en: '', imageUrl: '', productIds: [] });
+            renderAdminProductMachinesPage();
+        };
+
+        const machineGrid = container.querySelector('.admin-product-machines-grid');
+        const saveOrderButton = container.querySelector('#save-product-machine-order-btn');
+        const initialOrder = machines.map(machine => String(machine.id));
+        let orderChanged = false;
+
+        const setOrderChanged = (changed) => {
+            orderChanged = changed;
+            saveOrderButton.disabled = !changed;
+            saveOrderButton.classList.toggle('order-dirty', changed);
+        };
+
+        machineGrid.querySelectorAll('.machine-sort-handle').forEach(handle => {
+            handle.addEventListener('dragstart', event => event.preventDefault());
+            handle.addEventListener('pointerdown', event => {
+                if (event.button !== 0 && event.pointerType !== 'touch') return;
+                const card = handle.closest('.admin-product-machine-card');
+                if (!card) return;
+
+                event.preventDefault();
+                handle.setPointerCapture?.(event.pointerId);
+                card.classList.add('machine-card-dragging');
+                machineGrid.classList.add('machine-grid-sorting');
+                card.style.pointerEvents = 'none';
+
+                const moveCard = moveEvent => {
+                    moveEvent.preventDefault();
+                    const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+                        ?.closest('.admin-product-machine-card');
+                    if (!target || target === card || !machineGrid.contains(target)) return;
+
+                    const rect = target.getBoundingClientRect();
+                    const insertAfter = moveEvent.clientX > rect.left + (rect.width / 2);
+                    machineGrid.insertBefore(card, insertAfter ? target.nextSibling : target);
+                };
+
+                const finishDrag = () => {
+                    handle.removeEventListener('pointermove', moveCard);
+                    handle.removeEventListener('pointerup', finishDrag);
+                    handle.removeEventListener('pointercancel', finishDrag);
+                    card.style.pointerEvents = '';
+                    card.classList.remove('machine-card-dragging');
+                    machineGrid.classList.remove('machine-grid-sorting');
+                    const currentOrder = [...machineGrid.querySelectorAll('.admin-product-machine-card')]
+                        .map(item => String(item.dataset.machineId));
+                    setOrderChanged(currentOrder.some((id, index) => id !== initialOrder[index]));
+                };
+
+                handle.addEventListener('pointermove', moveCard);
+                handle.addEventListener('pointerup', finishDrag);
+                handle.addEventListener('pointercancel', finishDrag);
+            });
+        });
+
+        saveOrderButton.onclick = async () => {
+            if (!orderChanged) return;
+            const orderedIds = [...machineGrid.querySelectorAll('.admin-product-machine-card')]
+                .map(card => String(card.dataset.machineId));
+            const previousMachines = [...getProductMachines()];
+            const machinesById = new Map(previousMachines.map(machine => [String(machine.id), machine]));
+            appData.shopSettings.productMachines = orderedIds.map(id => machinesById.get(id)).filter(Boolean);
+
+            saveOrderButton.disabled = true;
+            const saved = await saveState();
+            if (!saved) {
+                appData.shopSettings.productMachines = previousMachines;
+                setOrderChanged(true);
+                return;
+            }
+            addLog('Product Machines Reordered', `Order: ${orderedIds.join(', ')}`);
+            Notify.success('บันทึกลำดับสำเร็จ', 'หน้า “สั่งซื้อสินค้าตามเครื่อง” จะแสดงตามลำดับใหม่นี้');
             renderAdminProductMachinesPage();
         };
 
         container.querySelectorAll('.save-product-machine-btn').forEach(button => {
             button.onclick = async () => {
-                const index = Number(button.dataset.index);
+                const machine = getProductMachines().find(item => String(item.id) === String(button.dataset.id));
+                if (!machine) return;
                 const card = button.closest('.admin-product-machine-card');
                 const name = card.querySelector('.machine-name-th').value.trim();
                 const nameEn = card.querySelector('.machine-name-en').value.trim();
@@ -8616,7 +8693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Notify.warning('ข้อมูลไม่ครบ', 'กรุณาระบุชื่อภาษาไทย ภาษาอังกฤษ และ URL รูปภาพ');
                     return;
                 }
-                Object.assign(machines[index], { name, name_en: nameEn, imageUrl });
+                Object.assign(machine, { name, name_en: nameEn, imageUrl });
                 const saved = await saveState();
                 if (!saved) return;
                 addLog('Product Machine Saved', `Machine: ${name}`);
@@ -8635,8 +8712,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.querySelectorAll('.delete-product-machine-btn').forEach(button => {
             button.onclick = async () => {
-                const index = Number(button.dataset.index);
-                const machine = machines[index];
+                const index = getProductMachines().findIndex(item => String(item.id) === String(button.dataset.id));
+                if (index < 0) return;
+                const machine = getProductMachines()[index];
                 const confirmed = await Notify.confirm({
                     title: 'ลบเครื่องสินค้า',
                     message: `ต้องการลบ “${machine.name || 'เครื่องนี้'}” หรือไม่?`,
@@ -8645,7 +8723,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cancelText: 'ยกเลิก'
                 });
                 if (!confirmed) return;
-                machines.splice(index, 1);
+                getProductMachines().splice(index, 1);
                 const saved = await saveState();
                 if (!saved) return;
                 renderAdminProductMachinesPage();
