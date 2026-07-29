@@ -3797,9 +3797,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (isSelected) {
                             buttonHtml = `<span class="coin-selected-check" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #27ae60; border-radius: 50%; color: #fff; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(39,174,96,0.3); animation: coinCheckPop 0.3s ease;">✓</span>`;
                         } else if (isDisabled) {
-                            buttonHtml = `<button class="btn btn-small" disabled style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`;
+                            buttonHtml = `<button class="btn btn-small catalog-compact-select" disabled style="margin: 0; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`;
                         } else {
-                            buttonHtml = `<button class="btn btn-primary btn-small" onclick="addCoinToCart('${pkg.id}')" style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem;">เลือก</button>`;
+                            buttonHtml = `<button class="btn btn-primary btn-small catalog-compact-select" onclick="addCoinToCart('${pkg.id}')" style="margin: 0;">เลือก</button>`;
                         }
                         
                         let itemBg, itemBorder;
@@ -3893,9 +3893,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isSelected) {
                 btnOrCheck = `<span class="voucher-selected-check" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #27ae60; border-radius: 50%; color: #fff; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(39,174,96,0.3); animation: coinCheckPop 0.3s ease;">✓</span>`;
             } else if (isDisabled) {
-                btnOrCheck = `<button class="btn btn-small" disabled style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`;
+                btnOrCheck = `<button class="btn btn-small catalog-compact-select" disabled style="margin: 0; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`;
             } else {
-                btnOrCheck = `<button class="btn btn-primary btn-small" onclick="addVoucherToCart('${pkg.id}')" style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem;">เลือก</button>`;
+                btnOrCheck = `<button class="btn btn-primary btn-small catalog-compact-select" onclick="addVoucherToCart('${pkg.id}')" style="margin: 0;">เลือก</button>`;
             }
 
             let itemBg, itemBorder;
@@ -5015,8 +5015,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         let buttonHtml = isSelected 
                             ? `<span class="coin-selected-check" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #27ae60; border-radius: 50%; color: #fff; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(39,174,96,0.3); animation: coinCheckPop 0.3s ease;">✓</span>`
                             : (isDisabled 
-                                ? `<button class="btn btn-small" disabled style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`
-                                : `<button class="btn btn-primary btn-small" onclick="addDiamondToCart('${pkg.id}')" style="margin: 0; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; background: linear-gradient(135deg, #00d2ff, #3a7bd5); border: none;">เลือก</button>`);
+                                ? `<button class="btn btn-small catalog-compact-select" disabled style="margin: 0; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#888'}; border: none;">เลือก</button>`
+                                : `<button class="btn btn-primary btn-small catalog-compact-select" onclick="addDiamondToCart('${pkg.id}')" style="margin: 0; background: linear-gradient(135deg, #00d2ff, #3a7bd5); border: none;">เลือก</button>`);
                                 
                         return `
                         <div class="diamond-pkg-item" style="display: flex; justify-content: space-between; align-items: center; background: ${dItemBg}; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: ${dItemBorder}; transition: all 0.3s ease; ${isDisabled ? 'opacity: 0.6;' : ''}; min-width: 0; overflow: hidden;">
@@ -5067,8 +5067,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         let buttonHtml = isSelected 
                             ? `<span class="coin-selected-check" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #27ae60; border-radius: 50%; color: #fff; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(39,174,96,0.3); animation: coinCheckPop 0.3s ease;">✓</span>`
                             : (isDisabled 
-                                ? `<button class="btn btn-block" disabled style="padding: 10px; border-radius: 8px; font-size: 1rem; opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#555'}; border: none; font-weight: bold;">เลือก</button>`
-                                : `<button class="btn btn-primary btn-block" onclick="addFarmPassToCart('${pkg.id}')" style="padding: 10px; border-radius: 8px; font-size: 1rem; background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); border: none; font-weight: bold;">เลือก</button>`);
+                                ? `<button class="btn catalog-compact-select" disabled style="opacity: 0.4; cursor: not-allowed; background: ${isDark ? '#444' : '#ccc'}; color: ${isDark ? '#aaa' : '#555'}; border: none;">เลือก</button>`
+                                : `<button class="btn btn-primary catalog-compact-select" onclick="addFarmPassToCart('${pkg.id}')" style="background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); border: none;">เลือก</button>`);
                                 
                         return `
                         <div class="farmpass-pkg-item" style="display: flex; flex-direction: column; background: ${fpItemBg}; padding: 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border: ${fpItemBorder}; transition: all 0.3s ease; align-items: center; text-align: center; ${isDisabled ? 'opacity: 0.6;' : ''}">
