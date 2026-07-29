@@ -1,11 +1,14 @@
 // netlify/functions/get-admin-data.js
 const requireAuth = require('./auth-middleware');
 const db = require('./database');
+const { readProductMachines } = require('./product-machines-db');
 
 const handler = async (event, context) => {
   try {
     // Fetch all necessary data for the admin panel
     const settingsResult = await db.query('SELECT settings_json FROM shop_settings WHERE id = 1');
+    const persistedSettings = settingsResult.rows[0]?.settings_json || {};
+    const productMachines = await readProductMachines(db, persistedSettings.productMachines || []);
     const subAdminsResult = await db.query("SELECT id, username, name, permissions FROM users WHERE is_super_admin = FALSE");
     const ordersResult = await db.query('SELECT * FROM orders ORDER BY timestamp DESC');
     const logsResult = await db.query('SELECT * FROM logs ORDER BY timestamp DESC LIMIT 200'); // Keep logs limited for performance
@@ -51,7 +54,10 @@ const handler = async (event, context) => {
 
     // Combine into the structure the frontend expects in `appData`
     const adminData = {
-      shopSettings: settingsResult.rows[0]?.settings_json || {},
+      shopSettings: {
+        ...persistedSettings,
+        productMachines
+      },
       subAdmins: subAdminsResult.rows,
       analytics: {
         orders: ordersResult.rows,

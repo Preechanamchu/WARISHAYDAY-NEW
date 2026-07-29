@@ -2,6 +2,7 @@
 const requireAuth = require('./auth-middleware');
 const db = require('./database');
 const bcrypt = require('bcryptjs');
+const { syncProductMachines } = require('./product-machines-db');
 
 // ===== START: HELPER FUNCTION (Deep Merge) =====
 // ฟังก์ชันนี้ช่วยในการ "ผสาน" object ที่ซับซ้อน
@@ -51,6 +52,11 @@ const handler = async (event, context) => {
 
         // 3. บันทึกข้อมูลที่ผสานแล้วกลับไป
         await client.query('UPDATE shop_settings SET settings_json = $1 WHERE id = 1', [JSON.stringify(newSettings)]);
+
+        // Persist the public product-machine catalog in the same transaction.
+        if (Array.isArray(data.shopSettings.productMachines)) {
+          await syncProductMachines(client, data.shopSettings.productMachines);
+        }
       }
       // ===== END: MODIFICATION =====
 

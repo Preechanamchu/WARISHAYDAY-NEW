@@ -1553,11 +1553,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || `Network response was not ok: ${response.statusText}`);
             }
 
+            return true;
+
         } catch (error) {
             console.error('Failed to save state to the database:', error);
             if (error.message !== 'Invalid or expired token.') {
                 Notify.error('Error', 'Error saving data: ' + error.message);
             }
+            return false;
         }
     };
 
@@ -8614,7 +8617,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 Object.assign(machines[index], { name, name_en: nameEn, imageUrl });
-                await saveState();
+                const saved = await saveState();
+                if (!saved) return;
                 addLog('Product Machine Saved', `Machine: ${name}`);
                 Notify.success('บันทึกเครื่องสำเร็จ', `บันทึก “${name}” แล้ว`);
                 renderAdminProductMachinesPage();
@@ -8642,7 +8646,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (!confirmed) return;
                 machines.splice(index, 1);
-                await saveState();
+                const saved = await saveState();
+                if (!saved) return;
                 renderAdminProductMachinesPage();
             };
         });
@@ -8735,7 +8740,8 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.querySelector('.machine-picker-save').onclick = async () => {
             const productById = new Map(eligibleProducts.map(product => [String(product.id), product.id]));
             machine.productIds = [...selectedIds].filter(id => productById.has(id)).map(id => productById.get(id));
-            await saveState();
+            const saved = await saveState();
+            if (!saved) return;
             addLog('Product Machine Items Updated', `Machine: ${machine.name}, products: ${machine.productIds.length}`);
             Notify.success('บันทึกสินค้าแล้ว', `${machine.name}: ${machine.productIds.length} รายการ`);
             closePicker();

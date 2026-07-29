@@ -4,7 +4,8 @@
   "description": "Backend API for Warishayday Thai online shop management system",
   "main": "update-store.js",
   "scripts": {
-    "start": "node update-store.js"
+    "start": "node update-store.js",
+    "migrate:product-machines": "node scripts/run-product-machines-migration.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

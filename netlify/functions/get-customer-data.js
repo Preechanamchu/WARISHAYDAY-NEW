@@ -1,5 +1,6 @@
 // netlify/functions/get-customer-data.js
 const db = require('./database');
+const { readProductMachines } = require('./product-machines-db');
 
 // นี่คือ API สาธารณะ ไม่จำเป็นต้องมีการยืนยันตัวตน (login)
 exports.handler = async (event, context) => {
@@ -18,6 +19,7 @@ exports.handler = async (event, context) => {
     // 3. ดึงข้อมูลการตั้งค่าร้าน (Shop Settings) ทั้งหมดจากฐานข้อมูล
     const settingsResult = await db.query('SELECT settings_json FROM shop_settings WHERE id = 1');
     const allShopSettings = settingsResult.rows[0]?.settings_json || {};
+    const productMachines = await readProductMachines(db, allShopSettings.productMachines || []);
 
     // 4. *** สำคัญมาก ***
     // สร้าง object 'shopSettings' ที่ "ปลอดภัย" เพื่อส่งให้ลูกค้า
@@ -76,6 +78,7 @@ exports.handler = async (event, context) => {
       priceTagCoinConfig: allShopSettings.priceTagCoinConfig || { closingMessage: '', fontSize: 50 },
       priceTagDiamondConfig: allShopSettings.priceTagDiamondConfig || { closingMessage: '', fontSize: 50 },
       priceTagVoucherConfig: allShopSettings.priceTagVoucherConfig || { closingMessage: '', fontSize: 50 },
+      priceTagProductMachinesConfig: allShopSettings.priceTagProductMachinesConfig || { closingMessage: '', fontSize: 50 },
       // --- จบส่วนอัปเดต ---
 
       // UI อื่นๆ
@@ -90,6 +93,7 @@ exports.handler = async (event, context) => {
       farmPassPackages: allShopSettings.farmPassPackages || [],
       voucherPackages: allShopSettings.voucherPackages || [],
       upgradeSettings: allShopSettings.upgradeSettings || {},
+      productMachines: productMachines,
       copyrightFontSize: allShopSettings.copyrightFontSize,
 
       // --- ลำดับการแสดงผลหน้าแคตตาล็อก (สำหรับลูกค้า) ---
