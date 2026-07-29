@@ -1614,3 +1614,69 @@ body.dark-mode #order-summary[data-layout="buttons-top"] {
         border-radius: 9px;
     }
 }
+
+/* ========================================================================== */
+/* DARK CUSTOMER CATALOG: one navy surface across product browsing            */
+/* ========================================================================== */
+body.dark-mode #customer-view {
+    --customer-dark-navy: #191a2e;
+    --customer-dark-navy-border: rgba(126, 145, 196, 0.2);
+}
+
+/* Category bar and search bar */
+body.dark-mode #customer-view #product-controls-wrapper,
+body.dark-mode #customer-view .category-scroller,
+body.dark-mode #customer-view .search-and-filter-container,
+body.dark-mode #customer-view #search-box,
+body.dark-mode #customer-view .filter-container .btn,
+body.dark-mode #customer-view .clear-search-btn {
+    color: #e8edf8;
+    border-color: var(--customer-dark-navy-border) !important;
+    background: var(--customer-dark-navy) !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode #customer-view #search-box::placeholder {
+    color: #929ab2;
+}
+
+body.dark-mode #customer-view #search-box:focus {
+    color: #ffffff;
+    border-color: rgba(34, 211, 238, 0.55) !important;
+    background: var(--customer-dark-navy) !important;
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1) !important;
+}
+
+body.dark-mode #customer-view #category-tabs .tab:not(.active) {
+    color: #d7deed;
+    border-color: var(--customer-dark-navy-border) !important;
+    background: var(--customer-dark-navy) !important;
+    box-shadow: none !important;
+}
+
+/* Main product area and every snack/product card, regardless of frame style */
+body.dark-mode #customer-view #product-list-container,
+body.dark-mode #customer-view .product-card,
+body.dark-mode #customer-view .product-card[class*="frame-style-"] {
+    color: #e8edf8;
+    border-color: var(--customer-dark-navy-border) !important;
+    background: var(--customer-dark-navy) !important;
+    box-shadow: none !important;
+}
+
+/* Product-machine catalog and its cards */
+body.dark-mode #customer-view .product-machines-catalog,
+body.dark-mode #customer-view .product-machine-detail,
+body.dark-mode #customer-view .product-machine-storefront-card,
+body.dark-mode #customer-view .product-machine-storefront-image,
+body.dark-mode #customer-view .product-machines-empty {
+    color: #e8edf8;
+    border-color: var(--customer-dark-navy-border) !important;
+    background: var(--customer-dark-navy) !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode #customer-view .product-machine-storefront-card strong,
+body.dark-mode #customer-view .product-machine-storefront-card small {
+    color: #dbe3f3;
+}
