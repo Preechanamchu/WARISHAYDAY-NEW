@@ -8563,7 +8563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="product-machines-admin-header">
                     <div>
                         <h2>🏭 เครื่องสินค้า</h2>
-                        <p>สร้างเครื่องและจัดสินค้าเข้าเครื่องแต่ละเครื่องให้เป็นหมวดหมู่</p>
+                        <p>สร้างเครื่องและจัดสินค้าเข้าเครื่องแต่ละเครื่องให้เป็นหมวดหมู่ · กดค้างที่กรอบรูปแล้วลากไปยังช่องที่ต้องการ</p>
                     </div>
                     <div class="product-machines-header-actions">
                         <button type="button" class="btn btn-success" id="add-product-machine-btn">+ เปิดเครื่องเพิ่ม</button>
@@ -8627,37 +8627,106 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!card) return;
 
                 event.preventDefault();
-                handle.setPointerCapture?.(event.pointerId);
-                card.classList.add('machine-card-dragging');
+                const pointerId = event.pointerId;
+                const cardRect = card.getBoundingClientRect();
+                const placeholder = document.createElement('div');
+                placeholder.className = 'machine-sort-placeholder';
+                placeholder.style.height = `${cardRect.height}px`;
+                placeholder.innerHTML = '<span>วางตำแหน่งนี้</span>';
+                machineGrid.insertBefore(placeholder, card);
+
+                const ghost = document.createElement('div');
+                ghost.className = 'machine-drag-ghost';
+                const ghostImage = handle.cloneNode(true);
+                ghostImage.classList.remove('machine-sort-handle');
+                const machineName = card.querySelector('.machine-name-th')?.value.trim() || 'เครื่องสินค้า';
+                ghost.appendChild(ghostImage);
+                ghost.insertAdjacentHTML('beforeend', `<strong>${escapeMachineText(machineName)}</strong>`);
+                document.body.appendChild(ghost);
+
+                const ghostWidth = Math.min(cardRect.width, 180);
+                ghost.style.width = `${ghostWidth}px`;
+                const positionGhost = pointerEvent => {
+                    ghost.style.left = `${pointerEvent.clientX - (ghostWidth / 2)}px`;
+                    ghost.style.top = `${Math.max(8, pointerEvent.clientY - 58)}px`;
+                };
+                positionGhost(event);
+
+                card.style.display = 'none';
                 machineGrid.classList.add('machine-grid-sorting');
-                card.style.pointerEvents = 'none';
+                document.body.classList.add('machine-reorder-active');
+                let highlightedTarget = null;
 
-                const moveCard = moveEvent => {
-                    moveEvent.preventDefault();
-                    const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
-                        ?.closest('.admin-product-machine-card');
-                    if (!target || target === card || !machineGrid.contains(target)) return;
-
-                    const rect = target.getBoundingClientRect();
-                    const insertAfter = moveEvent.clientX > rect.left + (rect.width / 2);
-                    machineGrid.insertBefore(card, insertAfter ? target.nextSibling : target);
+                const setHighlightedTarget = target => {
+                    if (highlightedTarget === target) return;
+                    highlightedTarget?.classList.remove('machine-card-insert-target');
+                    highlightedTarget = target;
+                    highlightedTarget?.classList.add('machine-card-insert-target');
                 };
 
-                const finishDrag = () => {
-                    handle.removeEventListener('pointermove', moveCard);
-                    handle.removeEventListener('pointerup', finishDrag);
-                    handle.removeEventListener('pointercancel', finishDrag);
-                    card.style.pointerEvents = '';
-                    card.classList.remove('machine-card-dragging');
+                const moveCard = moveEvent => {
+                    if (moveEvent.pointerId !== pointerId) return;
+                    moveEvent.preventDefault();
+                    positionGhost(moveEvent);
+
+                    const edgeZone = 72;
+                    if (moveEvent.clientY < edgeZone) window.scrollBy(0, -14);
+                    else if (moveEvent.clientY > window.innerHeight - edgeZone) window.scrollBy(0, 14);
+
+                    const gridRect = machineGrid.getBoundingClientRect();
+                    if (moveEvent.clientX < gridRect.left - 36 || moveEvent.clientX > gridRect.right + 36 ||
+                        moveEvent.clientY < gridRect.top - 48 || moveEvent.clientY > gridRect.bottom + 48) {
+                        setHighlightedTarget(null);
+                        return;
+                    }
+
+                    const candidates = [...machineGrid.querySelectorAll('.admin-product-machine-card')]
+                        .filter(item => item !== card);
+                    let target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+                        ?.closest('.admin-product-machine-card');
+
+                    if (!target || target === card || !machineGrid.contains(target)) {
+                        target = candidates.reduce((nearest, item) => {
+                            const rect = item.getBoundingClientRect();
+                            const distance = Math.hypot(
+                                moveEvent.clientX - (rect.left + rect.width / 2),
+                                moveEvent.clientY - (rect.top + rect.height / 2)
+                            );
+                            return !nearest || distance < nearest.distance ? { item, distance } : nearest;
+                        }, null)?.item || null;
+                    }
+                    if (!target) return;
+
+                    const rect = target.getBoundingClientRect();
+                    const verticalEdge = rect.height * 0.24;
+                    const insertAfter = moveEvent.clientY > rect.bottom - verticalEdge ||
+                        (moveEvent.clientY >= rect.top + verticalEdge &&
+                         moveEvent.clientX > rect.left + (rect.width / 2));
+                    machineGrid.insertBefore(placeholder, insertAfter ? target.nextSibling : target);
+                    placeholder.dataset.position = insertAfter ? 'after' : 'before';
+                    setHighlightedTarget(target);
+                };
+
+                const finishDrag = finishEvent => {
+                    if (finishEvent.pointerId !== pointerId) return;
+                    document.removeEventListener('pointermove', moveCard);
+                    document.removeEventListener('pointerup', finishDrag);
+                    document.removeEventListener('pointercancel', finishDrag);
+                    setHighlightedTarget(null);
+                    machineGrid.insertBefore(card, placeholder);
+                    placeholder.remove();
+                    ghost.remove();
+                    card.style.display = '';
                     machineGrid.classList.remove('machine-grid-sorting');
+                    document.body.classList.remove('machine-reorder-active');
                     const currentOrder = [...machineGrid.querySelectorAll('.admin-product-machine-card')]
                         .map(item => String(item.dataset.machineId));
                     setOrderChanged(currentOrder.some((id, index) => id !== initialOrder[index]));
                 };
 
-                handle.addEventListener('pointermove', moveCard);
-                handle.addEventListener('pointerup', finishDrag);
-                handle.addEventListener('pointercancel', finishDrag);
+                document.addEventListener('pointermove', moveCard, { passive: false });
+                document.addEventListener('pointerup', finishDrag);
+                document.addEventListener('pointercancel', finishDrag);
             });
         });
 
