@@ -3958,17 +3958,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const grid = document.createElement('div');
             grid.className = 'product-machines-storefront-grid';
             machines.forEach(machine => {
+                const machineCartQuantity = (machine.productIds || []).reduce((total, productId) => {
+                    return total + Number(appData.cart[productId] || appData.cart[String(productId)] || 0);
+                }, 0);
+                const hasPurchasedItems = machineCartQuantity > 0;
                 const card = document.createElement('button');
                 card.type = 'button';
-                card.className = 'product-machine-storefront-card';
+                card.className = `product-machine-storefront-card${hasPurchasedItems ? ' machine-has-cart-items' : ''}`;
                 const machineName = lang === 'en' && machine.name_en ? machine.name_en : machine.name;
                 card.innerHTML = `
                     <span class="product-machine-storefront-image">
                         <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                         <span style="display:none">🏭</span>
                     </span>
+                    ${hasPurchasedItems ? `<span class="machine-purchased-badge" title="${lang === 'th' ? 'เครื่องนี้มีสินค้าอยู่ในรายการสั่งซื้อแล้ว' : 'Items from this machine are already in your order'}"><span aria-hidden="true">✓</span><span class="machine-purchased-badge-text">${lang === 'th' ? 'เลือกซื้อแล้ว' : 'Selected'}</span></span>` : ''}
                     <strong>${escapeMachineText(machineName)}</strong>
-                    <small>${(machine.productIds || []).length} ${lang === 'th' ? 'สินค้า' : 'products'}</small>`;
+                    <small>${(machine.productIds || []).length} ${lang === 'th' ? 'สินค้า' : 'products'}${hasPurchasedItems ? ` <span class="machine-cart-count">· ${machineCartQuantity} ${lang === 'th' ? 'ชิ้นในตะกร้า' : 'in cart'}</span>` : ''}</small>`;
                 card.onclick = () => renderProductMachineDetail(machine.id);
                 grid.appendChild(card);
             });
