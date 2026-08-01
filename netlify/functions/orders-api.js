@@ -60,8 +60,8 @@ async function createOrder(orderData, headers) {
     // ฟังก์ชันย่อยสำหรับบันทึกลงฐานข้อมูล
     const tryInsert = async (orderIdToUse) => {
       const insertOrderQuery = `
-        INSERT INTO orders (order_id, timestamp, total, items, status, promo_applied, upgrade_snapshot, customer_tag, customer_email)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO orders (order_id, timestamp, total, items, status, promo_applied, upgrade_snapshot, customer_tag, customer_email, is_free_order)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `;
       
       // แปลงข้อมูลเป็น JSON string ถ้าจำเป็น (ป้องกัน error กับฐานข้อมูลบางประเภท)
@@ -80,7 +80,8 @@ async function createOrder(orderData, headers) {
         promoJson,
         upgradeSnapshotJson,
         customerTagValue,
-        customerEmailValue
+        customerEmailValue,
+        Number(orderData.total) === 0
       ]);
     };
 
@@ -137,6 +138,15 @@ async function createOrder(orderData, headers) {
           } catch (migrationErr) {
             console.error('Failed to auto-migrate database (customer_email):', migrationErr);
             throw err; // โยน Error เดิมออกไปถ้าแก้ไม่ได้
+          }
+        } else if (err.code === '42703' && err.message.includes('is_free_order')) {
+          console.warn('Column is_free_order missing. Attempting to add column...');
+          try {
+            await client.query('ALTER TABLE orders ADD COLUMN is_free_order BOOLEAN NOT NULL DEFAULT FALSE');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_orders_free_cleanup ON orders (timestamp) WHERE is_free_order = TRUE');
+          } catch (migrationErr) {
+            console.error('Failed to auto-migrate database (is_free_order):', migrationErr);
+            throw err;
           }
         } else {
           throw err; // ถ้าเป็น error อื่น (เช่น ต่อ DB ไม่ได้) ให้โยน error ออกไปปกติ

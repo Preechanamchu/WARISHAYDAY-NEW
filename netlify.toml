@@ -5,6 +5,10 @@
   # Directory where your serverless functions are located.
   functions = "netlify/functions"
 
+[functions."cleanup-free-orders"]
+  # 03:00 UTC (10:00 Asia/Bangkok) every second day of the month.
+  schedule = "0 3 */2 * *"
+
 [[redirects]]
   # This rule redirects all requests from /api/* to the corresponding
   # serverless function in the `netlify/functions` directory.

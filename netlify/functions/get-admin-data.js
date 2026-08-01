@@ -2,12 +2,14 @@
 const requireAuth = require('./auth-middleware');
 const db = require('./database');
 const { readProductMachines } = require('./product-machines-db');
+const { getPublicShowcaseSettings } = require('./get-showcase-settings');
 
 const handler = async (event, context) => {
   try {
     // Fetch all necessary data for the admin panel
     const settingsResult = await db.query('SELECT settings_json FROM shop_settings WHERE id = 1');
     const persistedSettings = settingsResult.rows[0]?.settings_json || {};
+    persistedSettings.showcaseSettings = await getPublicShowcaseSettings();
     const productMachines = await readProductMachines(db, persistedSettings.productMachines || []);
     const subAdminsResult = await db.query("SELECT id, username, name, permissions FROM users WHERE is_super_admin = FALSE");
     const ordersResult = await db.query('SELECT * FROM orders ORDER BY timestamp DESC');

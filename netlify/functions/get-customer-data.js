@@ -1,6 +1,7 @@
 // netlify/functions/get-customer-data.js
 const db = require('./database');
 const { readProductMachines } = require('./product-machines-db');
+const { getPublicShowcaseSettings } = require('./get-showcase-settings');
 
 // นี่คือ API สาธารณะ ไม่จำเป็นต้องมีการยืนยันตัวตน (login)
 exports.handler = async (event, context) => {
@@ -12,10 +13,11 @@ exports.handler = async (event, context) => {
   try {
     // These queries do not depend on one another. Running them together removes
     // two unnecessary database round trips from the customer startup path.
-    const [categoriesResult, productsResult, settingsResult] = await Promise.all([
+    const [categoriesResult, productsResult, settingsResult, showcaseSettings] = await Promise.all([
       db.query('SELECT * FROM categories ORDER BY sort_order ASC'),
       db.query('SELECT * FROM products ORDER BY category_id, level ASC'),
-      db.query('SELECT settings_json FROM shop_settings WHERE id = 1')
+      db.query('SELECT settings_json FROM shop_settings WHERE id = 1'),
+      getPublicShowcaseSettings()
     ]);
     const allShopSettings = settingsResult.rows[0]?.settings_json || {};
     const productMachines = await readProductMachines(db, allShopSettings.productMachines || []);
@@ -95,12 +97,7 @@ exports.handler = async (event, context) => {
       voucherPackages: allShopSettings.voucherPackages || [],
       upgradeSettings: allShopSettings.upgradeSettings || {},
       productMachines: productMachines,
-      showcaseSettings: allShopSettings.showcaseSettings || {
-        selectedProductIds: [],
-        categories: {},
-        maxItems: 10,
-        effect: { enabled: false, type: 'confetti', intensity: 30 }
-      },
+      showcaseSettings,
       copyrightFontSize: allShopSettings.copyrightFontSize,
 
       // --- ลำดับการแสดงผลหน้าแคตตาล็อก (สำหรับลูกค้า) ---

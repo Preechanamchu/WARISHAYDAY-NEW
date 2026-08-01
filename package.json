@@ -5,7 +5,8 @@
   "main": "update-store.js",
   "scripts": {
     "start": "node update-store.js",
-    "migrate:product-machines": "node scripts/run-product-machines-migration.js"
+    "migrate:product-machines": "node scripts/run-product-machines-migration.js",
+    "migrate:showcase": "node scripts/run-showcase-migration.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

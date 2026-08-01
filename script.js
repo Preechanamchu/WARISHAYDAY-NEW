@@ -5396,6 +5396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: new Date().toISOString(),
                 total: isShowcaseView() ? 0 : totalOrderPrice,
                 items: { ...appData.cart },
+                isFreeOrder: isShowcaseView(),
                 status: 'new',
                 customerTag: tagValue,
                 customerEmail: mailValue,
@@ -18255,6 +18256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (savedSettings) {
                     try {
                         const storeSpecificSettings = JSON.parse(savedSettings);
+                        delete storeSpecificSettings.showcaseSettings;
                         // ผสานกับ settings ที่มีอยู่
                         Object.assign(appData.shopSettings, storeSpecificSettings);
                         console.log('✅ Loaded shop settings for store', storeId);
@@ -18274,6 +18276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (savedSettings) {
                         try {
                             const storeSpecificSettings = JSON.parse(savedSettings);
+                            delete storeSpecificSettings.showcaseSettings;
                             Object.assign(appData.shopSettings, storeSpecificSettings);
                         } catch (_) {}
                     }
