@@ -1365,26 +1365,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     };
 
-    const getCatalogImageAttributes = (index = Number.MAX_SAFE_INTEGER, eagerCount = 8) => {
-        return index < eagerCount
-            ? 'loading="eager" decoding="async" fetchpriority="high"'
-            : 'loading="lazy" decoding="async" fetchpriority="low"';
-    };
-
-    const cancelPendingCatalogImages = (root = productGrid) => {
-        if (!root) return;
-        root.querySelectorAll('img[loading="lazy"]').forEach(img => {
-            if (!img.complete) img.removeAttribute('src');
-        });
-    };
-
-    const syncVisibleProductQuantities = () => {
-        productGrid.querySelectorAll('.product-card[data-id]').forEach(card => {
-            const quantityElement = card.querySelector('.product-card-quantity');
-            if (quantityElement) quantityElement.textContent = appData.cart[card.dataset.id] || 0;
-        });
-    };
-
     const preloadUpgradeAssets = () => {
         const settings = appData?.shopSettings?.upgradeSettings;
         if (!settings) return;
@@ -1401,20 +1381,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const assets = new Set();
         
         if (settings.menus) {
-            // Preload only the small menu covers shown on the first upgrade screen.
-            // Item icons are lazy-loaded after the user opens a menu.
             settings.menus.forEach(menu => {
-                if (menu.visible !== false && menu.icon) assets.add(menu.icon);
+                if (menu.icon) assets.add(menu.icon);
+                if (menu.items) {
+                    menu.items.forEach(item => {
+                        if (item.icon) assets.add(item.icon);
+                    });
+                }
             });
         }
 
         assets.forEach(url => {
             const img = new Image();
-            img.decoding = 'async';
-            img.fetchPriority = 'low';
             img.src = url;
             preloaderContainer.appendChild(img);
         });
+
+        if (settings.limitCheckVideoFile) {
+            const video = document.createElement('video');
+            video.src = settings.limitCheckVideoFile;
+            video.preload = 'auto';
+            preloaderContainer.appendChild(video);
+        }
     };
 
     // ===== START: Price Tag Bug Fix (loadCustomerData) =====
@@ -2356,7 +2344,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderProducts = (searchTerm = '') => {
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         const visibility = appData.shopSettings.catalogVisibility || {};
         
@@ -2412,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (productsToDisplay.length === 0) {
             productGrid.innerHTML = `<p style="text-align:center; grid-column: 1 / -1;">${lang === 'th' ? 'ไม่พบสินค้า' : 'No products found'}</p>`;
         } else {
-            productsToDisplay.forEach((prod, index) => {
+            productsToDisplay.forEach(prod => {
                 const quantity = appData.cart[prod.id] || 0;
                 const isPhysicallyOutOfStock = prod.stock !== -1 && prod.stock <= 0;
                 const isUnavailableByAdmin = !prod.is_available;
@@ -2444,7 +2431,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 card.innerHTML = `
                     <span class="product-card-level">LV ${prod.level}</span>
-                    <img src="${prod.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?'}" alt="${prodName}" class="product-card-icon" ${getCatalogImageAttributes(index)}>
+                    <img src="${prod.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?'}" alt="${prodName}" class="product-card-icon">
                     <span class="product-card-name" style="${shouldHideName ? 'display: none !important;' : ''}">${prodName}</span>
                     <div class="product-card-controls">
                         <span class="product-card-quantity">${quantity}</span>
@@ -2497,7 +2484,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             localStorage.setItem(getActiveCartStorageKey(), JSON.stringify(appData.cart));
 
-            syncVisibleProductQuantities();
+            if (catalogPage === 5 && activeProductMachineId) {
+                renderProductMachineDetail(activeProductMachineId);
+            } else if (isShowcaseView()) {
+                renderShowcaseStorefront();
+            } else {
+                renderProducts(searchBox.value.trim());
+            }
             checkOrderValidation();
             if (isShowcaseView() && getCartTotalQuantity() >= getShowcaseItemLimit()) {
                 notifyShowcaseLimitReached();
@@ -3724,13 +3717,14 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('current-category-name').textContent = translations[lang].upgradeCatalogTitle;
             applySectionBackground('upgrade');
         } else if (catalogPage === 5 && typeof renderProductMachinesFrontend === 'function') {
-            if (activeProductMachineId) syncVisibleProductQuantities(); else renderProductMachinesFrontend();
+            if (activeProductMachineId) renderProductMachineDetail(activeProductMachineId); else renderProductMachinesFrontend();
             document.getElementById('current-category-name').textContent = activeProductMachineId
                 ? (getProductMachines().find(machine => String(machine.id) === String(activeProductMachineId))?.name || 'เครื่องสินค้า')
                 : (translations[lang].productMachinesCatalogTitle || 'สั่งซื้อสินค้าตามเครื่อง');
             applySectionBackground('product-machines');
         } else {
-            syncVisibleProductQuantities();
+            if (isShowcaseView()) renderShowcaseStorefront();
+            else renderProducts(searchBox.value.trim());
             applySectionBackground('products');
         }
     });
@@ -4149,7 +4143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const productGrid = document.getElementById('product-grid');
         if (!productGrid) return;
         activeProductMachineId = null;
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         const lang = appData.shopSettings.language;
         const machines = getProductMachines().filter(machine => machine.name?.trim() && machine.name_en?.trim() && machine.imageUrl?.trim());
@@ -4161,7 +4154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const grid = document.createElement('div');
             grid.className = 'product-machines-storefront-grid';
-            machines.forEach((machine, index) => {
+            machines.forEach(machine => {
                 const machineCartQuantity = (machine.productIds || []).reduce((total, productId) => {
                     return total + Number(appData.cart[productId] || appData.cart[String(productId)] || 0);
                 }, 0);
@@ -4172,7 +4165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const machineName = lang === 'en' && machine.name_en ? machine.name_en : machine.name;
                 card.innerHTML = `
                     <span class="product-machine-storefront-image">
-                        <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}" ${getCatalogImageAttributes(index)} onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                         <span style="display:none">🏭</span>
                     </span>
                     ${hasPurchasedItems ? `<span class="machine-purchased-badge" title="${lang === 'th' ? 'เครื่องนี้มีสินค้าอยู่ในรายการสั่งซื้อแล้ว' : 'Items from this machine are already in your order'}"><span aria-hidden="true">✓</span><span class="machine-purchased-badge-text">${lang === 'th' ? 'เลือกซื้อแล้ว' : 'Selected'}</span></span>` : ''}
@@ -4194,7 +4187,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         activeProductMachineId = machine.id;
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         const lang = appData.shopSettings.language;
         const gridSettings = appData.shopSettings.gridLayoutSettings;
@@ -4211,7 +4203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="product-machine-detail-header">
                 <button type="button" class="btn btn-secondary product-machine-back-btn">← ${lang === 'th' ? 'กลับไปหน้าเครื่องสินค้า' : 'Back to machines'}</button>
                 <div class="product-machine-detail-title">
-                    <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}" loading="eager" decoding="async" fetchpriority="high">
+                    <img src="${escapeMachineText(machine.imageUrl)}" alt="${escapeMachineText(machineName)}">
                     <h3>${escapeMachineText(machineName)}</h3>
                 </div>
             </div>
@@ -4225,7 +4217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!products.length) {
             productsGrid.innerHTML = `<div class="product-machines-empty">${lang === 'th' ? 'เครื่องนี้ยังไม่มีสินค้า' : 'This machine has no products'}</div>`;
         } else {
-            products.forEach((prod, index) => {
+            products.forEach(prod => {
                 const quantity = appData.cart[prod.id] || 0;
                 const isPhysicallyOutOfStock = prod.stock !== -1 && prod.stock <= 0;
                 const isUnavailableByAdmin = !prod.is_available;
@@ -4242,7 +4234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 card.innerHTML = `
                     <span class="product-card-level">LV ${prod.level}</span>
-                    <img src="${escapeMachineText(prod.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeMachineText(prodName)}" class="product-card-icon" ${getCatalogImageAttributes(index)}>
+                    <img src="${escapeMachineText(prod.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeMachineText(prodName)}" class="product-card-icon">
                     <span class="product-card-name">${escapeMachineText(prodName)}</span>
                     <div class="product-card-controls"><span class="product-card-quantity">${quantity}</span></div>
                     ${outOfStockHTML}`;
@@ -4261,7 +4253,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderUpgradeCatalogFrontend = () => {
         const productGrid = document.getElementById('product-grid');
         if (!productGrid) return;
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         upgradeState = { selectedMenu: null, limitValue: null, availableLimit: null, purchaseMode: null, itemQuantities: {} };
 
@@ -4282,10 +4273,10 @@ document.addEventListener('DOMContentLoaded', () => {
         menuGrid.style.setProperty('--visible-upgrade-menus', Math.max(menus.length, 1));
         const menuEmojis = { barn: '🏠', silo: '🏗️', land: '🌍', train: '🚂' };
 
-        menus.forEach((menu, index) => {
+        menus.forEach(menu => {
             const card = document.createElement('div');
             card.className = 'upgrade-menu-card';
-            const menuIconHtml = menu.icon ? `<img src="${menu.icon}" class="upgrade-menu-image" alt="" ${getCatalogImageAttributes(index, 4)}>` : `<div class="upgrade-menu-fallback">${menu.emoji || '📦'}</div>`;
+            const menuIconHtml = menu.icon ? `<img src="${menu.icon}" class="upgrade-menu-image" alt="">` : `<div class="upgrade-menu-fallback">${menu.emoji || '📦'}</div>`;
             card.innerHTML = `
                 <div class="upgrade-menu-emoji">${menuIconHtml}</div>
                 <div class="upgrade-menu-name" style="margin-top: 12px; margin-bottom: 8px;">${lang === 'en' && menu.name_en ? menu.name_en : menu.name}</div>
@@ -4338,7 +4329,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderUpgradeMenuDetail = (menu) => {
         const productGrid = document.getElementById('product-grid');
         if (!productGrid) return;
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         upgradeState.selectedMenu = menu;
         upgradeState.limitValue = null;
@@ -4362,17 +4352,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Menu title
         const title = document.createElement('h3');
         title.className = 'upgrade-detail-title';
-        const menuIconHtml = menu.icon ? `<img src="${menu.icon}" style="width:24px;height:24px;vertical-align:middle;border-radius:4px;margin-right:8px;" loading="eager" decoding="async" fetchpriority="high">` : `<span style="margin-right:8px;">${menu.emoji || '📦'}</span>`;
+        const menuIconHtml = menu.icon ? `<img src="${menu.icon}" style="width:24px;height:24px;vertical-align:middle;border-radius:4px;margin-right:8px;">` : `<span style="margin-right:8px;">${menu.emoji || '📦'}</span>`;
         title.innerHTML = `${menuIconHtml} ${lang === 'en' && menu.name_en ? menu.name_en : menu.name}`;
         container.appendChild(title);
 
         // Items preview
         const itemsPreview = document.createElement('div');
         itemsPreview.className = 'upgrade-items-preview';
-        menu.items.forEach((item, index) => {
+        menu.items.forEach(item => {
             const itemEl = document.createElement('div');
             itemEl.className = 'upgrade-item-preview';
-            const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-item-icon-img" ${getCatalogImageAttributes(index, 6)}>` : `<span class="upgrade-item-icon-placeholder">📦</span>`;
+            const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-item-icon-img">` : `<span class="upgrade-item-icon-placeholder">📦</span>`;
             itemEl.innerHTML = `${iconHtml}<span class="upgrade-item-name-preview">${lang === 'en' && item.name_en ? item.name_en : item.name}</span>`;
             itemsPreview.appendChild(itemEl);
         });
@@ -4494,7 +4484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menu.items.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'upgrade-mixed-item';
-                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon" loading="lazy" decoding="async" fetchpriority="low">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
+                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
                 itemEl.innerHTML = `${iconHtml}<div class="upgrade-form-item-name">${lang === 'en' && item.name_en ? item.name_en : item.name}</div><div class="upgrade-mixed-question">?</div>`;
                 mixedContainer.appendChild(itemEl);
             });
@@ -4543,7 +4533,7 @@ document.addEventListener('DOMContentLoaded', () => {
             itemsToShow.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'upgrade-select-item';
-                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon" loading="lazy" decoding="async" fetchpriority="low">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
+                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
                 itemEl.innerHTML = `
                     ${iconHtml}
                     <div class="upgrade-form-item-name">${lang === 'en' && item.name_en ? item.name_en : item.name}</div>
@@ -4644,7 +4634,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menu.items.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'upgrade-select-item';
-                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon" loading="lazy" decoding="async" fetchpriority="low">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
+                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon">` : `<span class="upgrade-form-item-placeholder">📦</span>`;
                 itemEl.innerHTML = `
                     ${iconHtml}
                     <div class="upgrade-form-item-name">${lang === 'en' && item.name_en ? item.name_en : item.name}</div>
@@ -4753,7 +4743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             allItems.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'upgrade-crosszone-item';
-                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon-sm" loading="lazy" decoding="async" fetchpriority="low">` : `<span class="upgrade-form-item-placeholder-sm">📦</span>`;
+                const iconHtml = item.icon ? `<img src="${item.icon}" alt="${item.name}" class="upgrade-form-item-icon-sm">` : `<span class="upgrade-form-item-placeholder-sm">📦</span>`;
                 itemEl.innerHTML = `
                     ${iconHtml}
                     <div class="upgrade-crosszone-item-name">${lang === 'en' && item.name_en ? item.name_en : item.name}</div>
@@ -6500,7 +6490,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isShowcaseView()) return;
         ensureShowcaseFontsLoaded();
         document.body.classList.add('showcase-storefront-mode');
-        cancelPendingCatalogImages(productGrid);
         productGrid.innerHTML = '';
         const settings = ensureShowcaseSettings();
         const selected = new Set(settings.selectedProductIds.map(Number));
@@ -6531,7 +6520,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        let visibleProductIndex = 0;
         const grid = document.createElement('div');
         grid.className = 'showcase-products-grid showcase-flat-products-grid';
         appData.categories.forEach(category => {
@@ -6550,8 +6538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const message = (isUnavailable && product.unavailable_message?.trim()) || appData.shopSettings.messageSettings.outOfStockText || translations[lang].outOfStockTemporarily;
                     unavailable = `<div class="product-card-out-of-stock">${escapeShowcaseText(message)}</div>`;
                 }
-                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
-                visibleProductIndex += 1;
+                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon"><span class="product-card-name">${escapeShowcaseText(productName)}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
                 grid.appendChild(card);
             });
         });
@@ -15077,12 +15064,8 @@ document.addEventListener('DOMContentLoaded', () => {
             adminActiveCategoryId = activeCategoryId;
             if (isShowcaseView()) {
                 appData.products = appData.allProducts.filter(product => product.category_id === activeCategoryId);
-            } else if (catalogPage === 0) {
-                loadProductsForCategory(activeCategoryId);
             } else {
-                // Keep the category data ready for later without creating hundreds
-                // of off-screen image requests before the actual catalog is rendered.
-                appData.products = appData.allProducts.filter(product => product.category_id === activeCategoryId);
+                loadProductsForCategory(activeCategoryId);
             }
         } else {
             activeCategoryId = null;

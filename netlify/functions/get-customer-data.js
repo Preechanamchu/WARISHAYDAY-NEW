@@ -32,9 +32,7 @@ exports.handler = async (event, context) => {
       shopNameColor: allShopSettings.shopNameColor,
       sloganColor: allShopSettings.sloganColor,
       themeName: allShopSettings.themeName,
-      // A disabled Base64 logo can be hundreds of KB and is not rendered by customers.
-      // Keep it available in Admin API, but omit it from the public payload until enabled.
-      logo: allShopSettings.useLogo ? allShopSettings.logo : '',
+      logo: allShopSettings.logo,
       useLogo: allShopSettings.useLogo,
       darkMode: allShopSettings.darkMode,
 
