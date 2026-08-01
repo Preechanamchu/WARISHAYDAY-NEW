@@ -46,6 +46,7 @@ const ensureTables = async (client) => {
       title TEXT NOT NULL DEFAULT '',
       font_size INTEGER NOT NULL DEFAULT 26 CHECK (font_size BETWEEN 12 AND 64),
       font_family TEXT NOT NULL DEFAULT '''Kanit'', sans-serif',
+      font_bold BOOLEAN NOT NULL DEFAULT FALSE,
       text_color VARCHAR(20) NOT NULL DEFAULT '#172554',
       stroke_color VARCHAR(20) NOT NULL DEFAULT '#ffffff',
       shadow_enabled BOOLEAN NOT NULL DEFAULT TRUE,
@@ -53,6 +54,7 @@ const ensureTables = async (client) => {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await client.query('ALTER TABLE showcase_category_settings ADD COLUMN IF NOT EXISTS font_bold BOOLEAN NOT NULL DEFAULT FALSE');
   await client.query(`
     CREATE TABLE IF NOT EXISTS showcase_products (
       product_id INTEGER PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
@@ -75,6 +77,7 @@ const readDedicatedSettings = async (queryable) => {
       title: category.title || '',
       fontSize: Number(category.font_size) || 26,
       fontFamily: category.font_family || "'Kanit', sans-serif",
+      boldEnabled: category.font_bold === true,
       color: category.text_color || '#172554',
       strokeColor: category.stroke_color || '#ffffff',
       shadowEnabled: category.shadow_enabled === true,
@@ -153,15 +156,16 @@ const saveSettings = requireAuth(async (event) => {
       const config = rawConfig && typeof rawConfig === 'object' ? rawConfig : {};
       await client.query(`
         INSERT INTO showcase_category_settings (
-          category_id, title, font_size, font_family, text_color,
+          category_id, title, font_size, font_family, font_bold, text_color,
           stroke_color, shadow_enabled, shadow_strength, updated_at
         )
-        SELECT $1, $2, $3, $4, $5, $6, $7, $8, NOW()
+        SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
         WHERE EXISTS (SELECT 1 FROM categories WHERE id = $1)
         ON CONFLICT (category_id) DO UPDATE SET
           title = EXCLUDED.title,
           font_size = EXCLUDED.font_size,
           font_family = EXCLUDED.font_family,
+          font_bold = EXCLUDED.font_bold,
           text_color = EXCLUDED.text_color,
           stroke_color = EXCLUDED.stroke_color,
           shadow_enabled = EXCLUDED.shadow_enabled,
@@ -172,6 +176,7 @@ const saveSettings = requireAuth(async (event) => {
         String(config.title || '').slice(0, 500),
         Math.min(64, Math.max(12, Number(config.fontSize) || 26)),
         String(config.fontFamily || "'Kanit', sans-serif").slice(0, 150),
+        config.boldEnabled === true,
         String(config.color || '#172554').slice(0, 20),
         String(config.strokeColor || '#ffffff').slice(0, 20),
         config.shadowEnabled === true,

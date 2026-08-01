@@ -7,20 +7,28 @@ CREATE TABLE IF NOT EXISTS showcase_settings (
     effect_type TEXT NOT NULL DEFAULT 'confetti'
         CHECK (effect_type IN ('confetti', 'sparkles', 'balloons', 'petals', 'fireworks')),
     effect_intensity INTEGER NOT NULL DEFAULT 30 CHECK (effect_intensity BETWEEN 10 AND 80),
+    legacy_migrated_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE showcase_settings
+    ADD COLUMN IF NOT EXISTS legacy_migrated_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS showcase_category_settings (
     category_id INTEGER PRIMARY KEY REFERENCES categories(id) ON DELETE CASCADE,
     title TEXT NOT NULL DEFAULT '',
     font_size INTEGER NOT NULL DEFAULT 26 CHECK (font_size BETWEEN 12 AND 64),
     font_family TEXT NOT NULL DEFAULT '''Kanit'', sans-serif',
+    font_bold BOOLEAN NOT NULL DEFAULT FALSE,
     text_color VARCHAR(20) NOT NULL DEFAULT '#172554',
     stroke_color VARCHAR(20) NOT NULL DEFAULT '#ffffff',
     shadow_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     shadow_strength INTEGER NOT NULL DEFAULT 6 CHECK (shadow_strength BETWEEN 0 AND 20),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE showcase_category_settings
+    ADD COLUMN IF NOT EXISTS font_bold BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS showcase_products (
     product_id INTEGER PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
@@ -48,16 +56,19 @@ SET max_items = LEAST(100000, GREATEST(1, COALESCE((legacy.value ->> 'maxItems')
     effect_intensity = LEAST(80, GREATEST(10, COALESCE((legacy.value -> 'effect' ->> 'intensity')::INTEGER, effect_intensity))),
     updated_at = NOW()
 FROM legacy
-WHERE showcase_settings.id = 1;
+WHERE showcase_settings.id = 1
+  AND showcase_settings.legacy_migrated_at IS NULL;
 
 WITH legacy_categories AS (
     SELECT entry.key AS category_id, entry.value
     FROM shop_settings settings
     CROSS JOIN LATERAL jsonb_each(COALESCE(settings.settings_json::jsonb -> 'showcaseSettings' -> 'categories', '{}'::jsonb)) entry
-    WHERE settings.id = 1 AND entry.key ~ '^\d+$'
+    WHERE settings.id = 1
+      AND entry.key ~ '^\d+$'
+      AND EXISTS (SELECT 1 FROM showcase_settings WHERE id = 1 AND legacy_migrated_at IS NULL)
 )
 INSERT INTO showcase_category_settings (
-    category_id, title, font_size, font_family, text_color,
+    category_id, title, font_size, font_family, font_bold, text_color,
     stroke_color, shadow_enabled, shadow_strength
 )
 SELECT
@@ -65,6 +76,7 @@ SELECT
     COALESCE(legacy_categories.value ->> 'title', ''),
     LEAST(64, GREATEST(12, COALESCE((legacy_categories.value ->> 'fontSize')::INTEGER, 26))),
     COALESCE(NULLIF(legacy_categories.value ->> 'fontFamily', ''), '''Kanit'', sans-serif'),
+    COALESCE((legacy_categories.value ->> 'boldEnabled')::BOOLEAN, FALSE),
     COALESCE(NULLIF(legacy_categories.value ->> 'color', ''), '#172554'),
     COALESCE(NULLIF(legacy_categories.value ->> 'strokeColor', ''), '#ffffff'),
     COALESCE((legacy_categories.value ->> 'shadowEnabled')::BOOLEAN, TRUE),
@@ -75,6 +87,7 @@ ON CONFLICT (category_id) DO UPDATE SET
     title = EXCLUDED.title,
     font_size = EXCLUDED.font_size,
     font_family = EXCLUDED.font_family,
+    font_bold = EXCLUDED.font_bold,
     text_color = EXCLUDED.text_color,
     stroke_color = EXCLUDED.stroke_color,
     shadow_enabled = EXCLUDED.shadow_enabled,
@@ -87,7 +100,9 @@ WITH selected_products AS (
     CROSS JOIN LATERAL jsonb_array_elements_text(
         COALESCE(settings.settings_json::jsonb -> 'showcaseSettings' -> 'selectedProductIds', '[]'::jsonb)
     )
-    WHERE settings.id = 1 AND value ~ '^\d+$'
+    WHERE settings.id = 1
+      AND value ~ '^\d+$'
+      AND EXISTS (SELECT 1 FROM showcase_settings WHERE id = 1 AND legacy_migrated_at IS NULL)
 )
 INSERT INTO showcase_products (product_id)
 SELECT products.id
@@ -97,5 +112,9 @@ ON CONFLICT (product_id) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS idx_showcase_category_updated_at
     ON showcase_category_settings(updated_at DESC);
+
+UPDATE showcase_settings
+SET legacy_migrated_at = NOW()
+WHERE id = 1 AND legacy_migrated_at IS NULL;
 
 COMMIT;
