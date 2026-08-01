@@ -6548,7 +6548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const message = (isUnavailable && product.unavailable_message?.trim()) || appData.shopSettings.messageSettings.outOfStockText || translations[lang].outOfStockTemporarily;
                     unavailable = `<div class="product-card-out-of-stock">${escapeShowcaseText(message)}</div>`;
                 }
-                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><span class="showcase-free-price">0 ${lang === 'th' ? 'บาท' : 'THB'}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
+                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
                 visibleProductIndex += 1;
                 grid.appendChild(card);
             });
