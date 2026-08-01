@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_PRODUCTS_CRUD_ENDPOINT = '/api/products-api';
     const API_CATEGORIES_CRUD_ENDPOINT = '/api/categories-api';
     const API_CUSTOMER_DATA_ENDPOINT = '/api/get-customer-data';
+    const API_SHOWCASE_SETTINGS_ENDPOINT = '/api/get-showcase-settings';
     const API_ORDERS_ENDPOINT = '/api/orders-api';
     const API_LOG_TRAFFIC_ENDPOINT = '/api/log-traffic';
 
@@ -1688,6 +1689,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSortOrder = 'level_asc';
     let activeShowcaseSettingsTab = 'products';
     const expandedShowcaseCategoryIds = new Set();
+    let showcaseSettingsRefreshTimer = null;
+    let showcaseSettingsRefreshInFlight = false;
+    let showcaseSettingsSyncListenersReady = false;
+    let showcaseSettingsSignature = '';
 
     let dailyTrafficChart, productSalesChart, categorySalesChart;
     // Advanced Dashboard Charts
@@ -2167,6 +2172,48 @@ document.addEventListener('DOMContentLoaded', () => {
             : `ครบ ${limit} ชิ้นแล้ว ✅️`, '');
     };
 
+    const refreshShowcaseSettings = async (forceRender = false) => {
+        if (!isShowcaseView() || showcaseSettingsRefreshInFlight) return;
+        showcaseSettingsRefreshInFlight = true;
+        try {
+            const response = await fetch(`${API_SHOWCASE_SETTINGS_ENDPOINT}?t=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`Showcase settings request failed: ${response.status}`);
+            const data = await response.json();
+            if (!data.showcaseSettings || typeof data.showcaseSettings !== 'object') return;
+            const nextSignature = JSON.stringify(data.showcaseSettings);
+            if (forceRender || nextSignature !== showcaseSettingsSignature) {
+                appData.shopSettings.showcaseSettings = data.showcaseSettings;
+                ensureShowcaseSettings();
+                showcaseSettingsSignature = JSON.stringify(appData.shopSettings.showcaseSettings);
+                renderShowcaseStorefront();
+            }
+        } catch (error) {
+            console.warn('Could not refresh showcase settings:', error);
+        } finally {
+            showcaseSettingsRefreshInFlight = false;
+        }
+    };
+
+    const startShowcaseSettingsSync = () => {
+        if (!isShowcaseView()) return;
+        showcaseSettingsSignature = JSON.stringify(ensureShowcaseSettings());
+        void refreshShowcaseSettings();
+        if (!showcaseSettingsRefreshTimer) {
+            showcaseSettingsRefreshTimer = window.setInterval(() => {
+                if (!document.hidden) void refreshShowcaseSettings();
+            }, 10000);
+        }
+        if (!showcaseSettingsSyncListenersReady) {
+            showcaseSettingsSyncListenersReady = true;
+            window.addEventListener('storage', event => {
+                if (event.key === 'warishayday_showcase_settings_updated') void refreshShowcaseSettings(true);
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) void refreshShowcaseSettings();
+            });
+        }
+    };
+
     const renderCustomerView = () => {
         applyTheme();
         adminGearIcon.style.display = isAdminLoggedIn || isCustomerViewOnly() ? 'none' : 'flex';
@@ -2177,6 +2224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isShowcaseView()) {
             document.body.classList.add('showcase-storefront-mode');
             renderShowcaseStorefront();
+            startShowcaseSettingsSync();
         } else {
             document.body.classList.remove('showcase-storefront-mode');
             document.getElementById('showcase-effect-layer')?.remove();
@@ -6357,7 +6405,11 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelector('#save-showcase-settings')?.addEventListener('click', async event => {
             addLog('showcase_settings', `Selected ${settings.selectedProductIds.length} products`);
             const saved = await saveState();
-            if (saved) { Notify.success('บันทึกสำเร็จ', 'ลิงก์ร้านค้าใหม่อัปเดตแล้ว'); showSaveFeedback(event.currentTarget); }
+            if (saved) {
+                localStorage.setItem('warishayday_showcase_settings_updated', String(Date.now()));
+                Notify.success('บันทึกสำเร็จ', 'หน้าของผู้ใช้ทุกคนกำลังอัปเดต');
+                showSaveFeedback(event.currentTarget);
+            }
         });
         root.querySelectorAll('[data-showcase-preview]').forEach(preview => updateShowcaseCategoryPreview(root, preview.dataset.showcasePreview));
         updateShowcaseMasterCheckboxes(root);

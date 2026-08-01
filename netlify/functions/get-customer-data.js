@@ -98,6 +98,7 @@ exports.handler = async (event, context) => {
       showcaseSettings: allShopSettings.showcaseSettings || {
         selectedProductIds: [],
         categories: {},
+        maxItems: 10,
         effect: { enabled: false, type: 'confetti', intensity: 30 }
       },
       copyrightFontSize: allShopSettings.copyrightFontSize,
