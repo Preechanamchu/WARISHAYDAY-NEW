@@ -6521,41 +6521,20 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(Number.isFinite)
             .sort((a, b) => a - b)[0];
         if (Number.isFinite(primaryCategoryId)) {
-            const primaryCategory = appData.categories.find(category => Number(category.id) === primaryCategoryId);
             const primaryConfig = settings.categories[String(primaryCategoryId)];
-            currentCategoryName.textContent = primaryConfig.title?.trim()
-                || ((lang === 'en' && primaryCategory?.name_en) ? primaryCategory.name_en : primaryCategory?.name)
-                || '';
-            applyShowcaseTitleStyle(currentCategoryName, primaryConfig);
-            currentCategoryName.style.display = '';
+            currentCategoryName.textContent = primaryConfig.title?.trim() || '';
+            if (currentCategoryName.textContent) {
+                applyShowcaseTitleStyle(currentCategoryName, primaryConfig);
+                currentCategoryName.style.display = '';
+            }
         }
 
         let visibleProductIndex = 0;
-        let isFirstVisibleCategory = !Number.isFinite(primaryCategoryId);
+        const grid = document.createElement('div');
+        grid.className = 'showcase-products-grid showcase-flat-products-grid';
         appData.categories.forEach(category => {
             const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id) && selected.has(Number(product.id)) && !product.hidden);
             if (!products.length) return;
-            const config = getShowcaseCategoryConfig(category);
-            const section = document.createElement('section');
-            section.className = 'showcase-store-category';
-            const title = document.createElement('h2');
-            title.className = 'showcase-store-title';
-            title.textContent = config.title?.trim() || ((lang === 'en' && category.name_en) ? category.name_en : category.name);
-            applyShowcaseTitleStyle(title, config);
-            if (isFirstVisibleCategory) {
-                currentCategoryName.textContent = title.textContent;
-                currentCategoryName.style.display = '';
-                currentCategoryName.style.fontSize = title.style.fontSize;
-                currentCategoryName.style.fontFamily = title.style.fontFamily;
-                currentCategoryName.style.color = title.style.color;
-                currentCategoryName.style.webkitTextStroke = title.style.webkitTextStroke;
-                currentCategoryName.style.textShadow = title.style.textShadow;
-                isFirstVisibleCategory = false;
-            } else if (Number(category.id) !== primaryCategoryId) {
-                section.appendChild(title);
-            }
-            const grid = document.createElement('div');
-            grid.className = 'showcase-products-grid';
             products.forEach(product => {
                 const isPhysicallyOutOfStock = product.stock !== -1 && product.stock <= 0;
                 const isUnavailable = !product.is_available;
@@ -6573,10 +6552,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 visibleProductIndex += 1;
                 grid.appendChild(card);
             });
-            section.appendChild(grid);
-            productGrid.appendChild(section);
         });
-        if (!productGrid.children.length) productGrid.innerHTML = `<div class="showcase-store-empty"><span>🛍️</span><h3>${lang === 'th' ? 'ยังไม่มีสินค้าที่เลือกไว้' : 'No selected products yet'}</h3><p>${lang === 'th' ? 'กรุณากลับมาใหม่ภายหลัง' : 'Please check back later'}</p></div>`;
+        if (grid.children.length) productGrid.appendChild(grid);
+        else productGrid.innerHTML = `<div class="showcase-store-empty"><span>🛍️</span><h3>${lang === 'th' ? 'ยังไม่มีสินค้าที่เลือกไว้' : 'No selected products yet'}</h3><p>${lang === 'th' ? 'กรุณากลับมาใหม่ภายหลัง' : 'Please check back later'}</p></div>`;
         applySectionBackground('products');
         mountShowcaseEffect();
         checkOrderValidation();
