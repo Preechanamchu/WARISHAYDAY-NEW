@@ -95,6 +95,11 @@ exports.handler = async (event, context) => {
       voucherPackages: allShopSettings.voucherPackages || [],
       upgradeSettings: allShopSettings.upgradeSettings || {},
       productMachines: productMachines,
+      showcaseSettings: allShopSettings.showcaseSettings || {
+        selectedProductIds: [],
+        categories: {},
+        effect: { enabled: false, type: 'confetti', intensity: 30 }
+      },
       copyrightFontSize: allShopSettings.copyrightFontSize,
 
       // --- ลำดับการแสดงผลหน้าแคตตาล็อก (สำหรับลูกค้า) ---

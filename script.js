@@ -63,6 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
             coinPackages: [],
             voucherPackages: [],
             productMachines: [],
+            showcaseSettings: {
+                selectedProductIds: [],
+                categories: {},
+                effect: { enabled: false, type: 'confetti', intensity: 30 }
+            },
 
             dbCategoryLowStockThresholds: {},
             copyrightText: "Copyright © 2025 HAYDAY",
@@ -285,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             subAdminAttempts: {},
             logs: []
         },
-        menuOrder: ['dashboard', 'order-number', 'stock', 'admin', 'festival', 'manage-account', 'grid-layout', 'order-bar', 'manager-store']
+        menuOrder: ['dashboard', 'order-number', 'stock', 'admin', 'festival', 'manage-account', 'grid-layout', 'order-bar', 'tab-settings', 'manager-store']
     };
 
     // ===== START: Price Tag Bug Fix (Deep Merge Function) =====
@@ -309,6 +314,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return target;
     }
+
+    const ensureShowcaseSettings = () => {
+        if (!appData.shopSettings.showcaseSettings || typeof appData.shopSettings.showcaseSettings !== 'object') {
+            appData.shopSettings.showcaseSettings = {};
+        }
+        const settings = appData.shopSettings.showcaseSettings;
+        if (!Array.isArray(settings.selectedProductIds)) settings.selectedProductIds = [];
+        if (!settings.categories || typeof settings.categories !== 'object' || Array.isArray(settings.categories)) settings.categories = {};
+        if (!settings.effect || typeof settings.effect !== 'object') settings.effect = {};
+        settings.effect.enabled = settings.effect.enabled === true;
+        settings.effect.type = ['confetti', 'sparkles', 'balloons', 'petals', 'fireworks'].includes(settings.effect.type)
+            ? settings.effect.type
+            : 'confetti';
+        settings.effect.intensity = Math.min(80, Math.max(10, Number(settings.effect.intensity) || 30));
+
+        if (!Array.isArray(appData.menuOrder)) appData.menuOrder = [];
+        if (!appData.menuOrder.includes('tab-settings')) {
+            const managerIndex = appData.menuOrder.indexOf('manager-store');
+            appData.menuOrder.splice(managerIndex >= 0 ? managerIndex : appData.menuOrder.length, 0, 'tab-settings');
+        }
+        return settings;
+    };
     // ===== END: Price Tag Bug Fix (Deep Merge Function) =====
 
     // ===== START: Notification System Module =====
@@ -911,6 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menuAdmin: "ตั้งค่าร้าน", menuFestival: "Festival", menuStock: "สต๊อกสินค้า", menuOrderNumber: "Order Number", menuDashboard: "Dashboard", menuManageAccount: "Manage account", editMenuOrderBtn: "EDIT",
             menuGridLayout: "Grid Layout",
             menuOrderBar: "แถบสั่งซื้อ",
+            menuTabSettings: "ตั้งค่าของแถบ",
             menuManagerStore: "ร้านค้าที่สมัครเข้ามา",
             msOpenStore: "เปิดร้านค้าใหม่",
             msTrackOperations: "ติดตามการทำงาน",
@@ -1067,6 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menuAdmin: "Shop Settings", menuFestival: "Festival", menuStock: "Stock", menuOrderNumber: "Order Number", menuDashboard: "Dashboard", menuManageAccount: "Manage Account", editMenuOrderBtn: "EDIT",
             menuGridLayout: "Grid Layout",
             menuOrderBar: "Order Bar",
+            menuTabSettings: "Showcase Link",
             menuManagerStore: "Registered Stores",
             msDashboard: "Dashboard (System)",
             editSubMenuOrderBtn: "EDIT",
@@ -1213,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MENU_NAMES = {
         'dashboard': 'menuDashboard', 'order-number': 'menuOrderNumber', 'stock': 'menuStock',
         'admin': 'menuAdmin', 'festival': 'menuFestival', 'manage-account': 'menuManageAccount',
-        'grid-layout': 'gridLayoutTitle', 'order-bar': 'menuOrderBar', 'manager-store': 'menuManagerStore'
+        'grid-layout': 'gridLayoutTitle', 'order-bar': 'menuOrderBar', 'tab-settings': 'menuTabSettings', 'manager-store': 'menuManagerStore'
     };
 
     const SUB_MENUS = {
@@ -1401,6 +1430,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (customerData.shopSettings) {
                 // ใช้ deepMerge แทน Object.assign เพื่อป้องกันการเขียนทับข้อมูล default
                 mergeDeep(appData.shopSettings, customerData.shopSettings);
+                ensureShowcaseSettings();
                 console.log('✅ [loadCustomerData] After mergeDeep, appData.shopSettings.coinPackages:', appData.shopSettings.coinPackages);
                 
                 // AUTO-PATCH: Ensure 'upgrade' exists in stockSubMenuOrder (for old DB data that doesn't have it)
@@ -1465,6 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // This mergeDeep is already correct
             mergeDeep(appData, adminData);
+            ensureShowcaseSettings();
 
             appData.analytics.dailyTraffic = appData.analytics.dailyTraffic || Array(7).fill(0);
             appData.analytics.hourlyTraffic = appData.analytics.hourlyTraffic || Array(24).fill(0);
@@ -1653,6 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let loggedInUser = null;
     let currentAppliedPromo = null;
     let currentSortOrder = 'level_asc';
+    let activeShowcaseSettingsTab = 'products';
 
     let dailyTrafficChart, productSalesChart, categorySalesChart;
     // Advanced Dashboard Charts
@@ -1680,6 +1712,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (views.customer.classList.contains('active')) {
+            if (isShowcaseView()) {
+                renderShowcaseStorefront();
+                return;
+            }
             renderCategoryTabs();
             if (catalogPage === 1 && typeof renderCoinCatalogFrontend === 'function') {
                 renderCoinCatalogFrontend();
@@ -2104,8 +2140,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isCustomerViewOnly = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('customer') === 'true';
+        return urlParams.get('customer') === 'true' || urlParams.get('showcase') === '1';
     };
+
+    const isShowcaseView = () => new URLSearchParams(window.location.search).get('showcase') === '1';
 
     const renderCustomerView = () => {
         applyTheme();
@@ -2114,7 +2152,14 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggleBtn.style.display = 'flex';
         langToggleBtn.style.display = 'flex';
 
-        renderCategoryTabs();
+        if (isShowcaseView()) {
+            document.body.classList.add('showcase-storefront-mode');
+            renderShowcaseStorefront();
+        } else {
+            document.body.classList.remove('showcase-storefront-mode');
+            document.getElementById('showcase-effect-layer')?.remove();
+            renderCategoryTabs();
+        }
         checkOrderValidation();
     };
 
@@ -5344,7 +5389,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.removeItem('warishayday_upgrade_orders');
 
                     // ===== FIX: Re-render only the current page, preserve header =====
-                    if (catalogPage === 1 && typeof renderCoinCatalogFrontend === 'function') {
+                    if (isShowcaseView()) {
+                        renderShowcaseStorefront();
+                    } else if (catalogPage === 1 && typeof renderCoinCatalogFrontend === 'function') {
                         renderCoinCatalogFrontend();
                         document.getElementById('current-category-name').textContent = translations[lang].coinCatalogTitle;
                         applySectionBackground('coin-packages');
@@ -6017,6 +6064,265 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     // ===== END: Main Control Page =====
 
+    // ===== START: Curated showcase link =====
+    const SHOWCASE_FONTS = [
+        "'Kanit', sans-serif", "'Prompt', sans-serif", "'Sarabun', sans-serif", "'Mitr', sans-serif",
+        "'Mali', cursive", "'Anuphan', sans-serif", "'IBM Plex Sans Thai', sans-serif", "'Chakra Petch', sans-serif",
+        "'Taviraj', serif", "'Trirong', serif", "'Noto Sans Thai', sans-serif", "'Noto Serif Thai', serif",
+        "'Bai Jamjuree', sans-serif", "'Charmonman', cursive", "'Fahkwang', sans-serif", "'Kodchasan', sans-serif",
+        "'KoHo', sans-serif", "'Maitree', serif", "'Niramit', sans-serif", "'Pridi', serif"
+    ];
+    const SHOWCASE_COLORS = ['#ffffff', '#172554', '#0891b2', '#0f766e', '#16a34a', '#65a30d', '#eab308', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#111827'];
+    const SHOWCASE_EFFECTS = [
+        { id: 'confetti', icon: '🎊', name: 'พลุกระดาษ', desc: 'กระดาษสีฉลองโปรยลงมา' },
+        { id: 'sparkles', icon: '✨', name: 'ประกายทอง', desc: 'แสงวิบวับแบบพรีเมียม' },
+        { id: 'balloons', icon: '🎈', name: 'ลูกโป่งฉลอง', desc: 'ลูกโป่งลอยขึ้นอย่างนุ่มนวล' },
+        { id: 'petals', icon: '🌸', name: 'กลีบดอกไม้', desc: 'กลีบดอกไม้ลอยผ่านหน้าร้าน' },
+        { id: 'fireworks', icon: '🎆', name: 'ดอกไม้ไฟ', desc: 'ประกายระเบิดฉลองด้านหลังสินค้า' }
+    ];
+
+    const escapeShowcaseText = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+    const ensureShowcaseFontsLoaded = () => {
+        if (document.getElementById('showcase-fonts-link')) return;
+        const link = document.createElement('link');
+        link.id = 'showcase-fonts-link';
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=Charmonman:wght@400;700&family=Fahkwang:wght@400;500;600&family=Kodchasan:wght@400;500;600&family=KoHo:wght@400;500;600&family=Maitree:wght@400;500;600&family=Niramit:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600&family=Pridi:wght@400;500;600&display=swap';
+        document.head.appendChild(link);
+    };
+
+    const getShowcaseCategoryConfig = (category) => {
+        const settings = ensureShowcaseSettings();
+        const key = String(category.id);
+        if (!settings.categories[key]) {
+            settings.categories[key] = {
+                title: '', fontSize: 26, fontFamily: SHOWCASE_FONTS[0], color: '#172554',
+                strokeColor: '#ffffff', shadowEnabled: true, shadowStrength: 6
+            };
+        }
+        return settings.categories[key];
+    };
+
+    const getShowcaseUrl = () => {
+        const current = new URL(window.location.href);
+        const store = current.searchParams.get('store');
+        const url = new URL(window.location.origin + window.location.pathname);
+        if (store) url.searchParams.set('store', store);
+        url.searchParams.set('customer', 'true');
+        url.searchParams.set('showcase', '1');
+        return url.toString();
+    };
+
+    const updateShowcaseMasterCheckboxes = (root) => {
+        const selected = new Set(ensureShowcaseSettings().selectedProductIds.map(Number));
+        root.querySelectorAll('[data-showcase-category-select]').forEach(master => {
+            const ids = (master.dataset.productIds || '').split(',').filter(Boolean).map(Number);
+            const selectedCount = ids.filter(id => selected.has(id)).length;
+            master.checked = ids.length > 0 && selectedCount === ids.length;
+            master.indeterminate = selectedCount > 0 && selectedCount < ids.length;
+            const count = root.querySelector(`[data-showcase-count="${master.dataset.categoryId}"]`);
+            if (count) count.textContent = `${selectedCount}/${ids.length} สินค้า`;
+        });
+    };
+
+    const renderShowcaseSettingsPage = () => {
+        ensureShowcaseFontsLoaded();
+        const root = document.getElementById('showcase-settings-root');
+        if (!root) return;
+        const settings = ensureShowcaseSettings();
+        const selected = new Set(settings.selectedProductIds.map(Number));
+        const link = getShowcaseUrl();
+
+        const productPanel = appData.categories.map(category => {
+            const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id));
+            const config = getShowcaseCategoryConfig(category);
+            const ids = products.map(product => Number(product.id));
+            return `
+                <section class="showcase-admin-category">
+                    <div class="showcase-admin-category-head">
+                        <label class="showcase-master-label">
+                            <input type="checkbox" data-showcase-category-select data-category-id="${category.id}" data-product-ids="${ids.join(',')}">
+                            <span>${category.icon ? `<img src="${escapeShowcaseText(category.icon)}" alt="" loading="lazy" decoding="async">` : '📦'}</span>
+                            <strong>${escapeShowcaseText(category.name)}</strong>
+                        </label>
+                        <span class="showcase-selected-count" data-showcase-count="${category.id}">0/${ids.length} สินค้า</span>
+                    </div>
+                    <div class="showcase-heading-settings">
+                        <label class="showcase-field showcase-field-wide"><span>ข้อความหัวข้อแทนชื่อหมวดหมู่</span><input type="text" data-showcase-setting="title" data-category-id="${category.id}" value="${escapeShowcaseText(config.title)}" placeholder="${escapeShowcaseText(category.name)}"></label>
+                        <label class="showcase-field"><span>ขนาดฟอนต์</span><input type="range" min="12" max="64" value="${Number(config.fontSize) || 26}" data-showcase-setting="fontSize" data-category-id="${category.id}"><output>${Number(config.fontSize) || 26}px</output></label>
+                        <label class="showcase-field"><span>รูปแบบฟอนต์ (20 แบบ)</span><select data-showcase-setting="fontFamily" data-category-id="${category.id}">${SHOWCASE_FONTS.map((font, index) => `<option value="${escapeShowcaseText(font)}" style="font-family:${escapeShowcaseText(font)}" ${config.fontFamily === font ? 'selected' : ''}>${index + 1}. ${escapeShowcaseText(font.replace(/'/g, '').split(',')[0])}</option>`).join('')}</select></label>
+                        <div class="showcase-field showcase-palette-field"><span>สีข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.color === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="color" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div>
+                        <div class="showcase-field showcase-palette-field"><span>สีขอบข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.strokeColor === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="strokeColor" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div>
+                        <label class="showcase-shadow-toggle"><input type="checkbox" data-showcase-setting="shadowEnabled" data-category-id="${category.id}" ${config.shadowEnabled ? 'checked' : ''}><span>เปิดเงาข้อความ</span></label>
+                        <label class="showcase-field"><span>ความเข้มเงา</span><input type="range" min="0" max="20" value="${Number(config.shadowStrength) || 0}" data-showcase-setting="shadowStrength" data-category-id="${category.id}"><output>${Number(config.shadowStrength) || 0}</output></label>
+                    </div>
+                    <div class="showcase-product-picker">
+                        ${products.length ? products.map(product => `<label class="showcase-product-option ${selected.has(Number(product.id)) ? 'selected' : ''}"><input type="checkbox" data-showcase-product="${product.id}" ${selected.has(Number(product.id)) ? 'checked' : ''}><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/80x80?text=?')}" alt="" loading="lazy" decoding="async"><span><strong>${escapeShowcaseText(product.name)}</strong><small>LV ${Number(product.level) || 0}</small></span></label>`).join('') : '<p class="showcase-empty-admin">ยังไม่มีสินค้าในหมวดหมู่นี้</p>'}
+                    </div>
+                </section>`;
+        }).join('');
+
+        const effectsPanel = `
+            <section class="showcase-effects-panel">
+                <div class="showcase-effect-topline">
+                    <label class="showcase-shadow-toggle"><input id="showcase-effect-enabled" type="checkbox" ${settings.effect.enabled ? 'checked' : ''}><span>เปิดเอฟเฟ็กต์ในหน้าลิงก์ใหม่</span></label>
+                    <label class="showcase-effect-intensity"><span>จำนวนเอฟเฟ็กต์</span><input id="showcase-effect-intensity" type="range" min="10" max="80" value="${settings.effect.intensity}"><output>${settings.effect.intensity}</output></label>
+                </div>
+                <div class="showcase-effect-grid">${SHOWCASE_EFFECTS.map(effect => `<button type="button" class="showcase-effect-card ${settings.effect.type === effect.id ? 'active' : ''}" data-showcase-effect="${effect.id}"><span>${effect.icon}</span><strong>${effect.name}</strong><small>${effect.desc}</small></button>`).join('')}</div>
+                <p class="showcase-effect-note">เอฟเฟ็กต์จะแสดงเฉพาะหน้าที่เปิดจากลิงก์ใหม่นี้ และไม่รบกวนหน้าร้านหลัก</p>
+            </section>`;
+
+        root.innerHTML = `
+            <div class="showcase-admin-shell">
+                <div class="showcase-admin-hero"><div><span class="showcase-eyebrow">CURATED STOREFRONT</span><h2>🎯 ตั้งค่าของแถบ</h2><p>เลือกรายการสินค้าและออกแบบหัวข้อสำหรับลิงก์ร้านค้าเฉพาะ</p></div><button type="button" class="btn btn-primary" id="save-showcase-settings">💾 บันทึกการตั้งค่า</button></div>
+                <div class="showcase-link-card"><div><strong>ลิงก์ร้านค้าใหม่</strong><small>ลูกค้าจะเห็นเฉพาะสินค้าที่เลือกไว้ด้านล่าง</small></div><div class="showcase-link-actions"><input id="showcase-link-display" value="${escapeShowcaseText(link)}" readonly><button type="button" class="btn btn-secondary" id="copy-showcase-link">คัดลอก</button><button type="button" class="btn btn-primary" id="open-showcase-link">เปิดดู</button></div></div>
+                <div class="showcase-settings-tabs"><button type="button" data-showcase-tab="products" class="${activeShowcaseSettingsTab === 'products' ? 'active' : ''}">🛍️ สินค้าและหัวข้อ</button><button type="button" data-showcase-tab="effects" class="${activeShowcaseSettingsTab === 'effects' ? 'active' : ''}">🎉 เอฟเฟ็กต์ฉลอง 5 แบบ</button></div>
+                <div class="showcase-settings-content">${activeShowcaseSettingsTab === 'products' ? productPanel : effectsPanel}</div>
+            </div>`;
+
+        root.querySelectorAll('[data-showcase-tab]').forEach(button => button.addEventListener('click', () => {
+            activeShowcaseSettingsTab = button.dataset.showcaseTab;
+            renderShowcaseSettingsPage();
+        }));
+        root.querySelectorAll('[data-showcase-product]').forEach(input => input.addEventListener('change', () => {
+            const id = Number(input.dataset.showcaseProduct);
+            const current = new Set(settings.selectedProductIds.map(Number));
+            input.checked ? current.add(id) : current.delete(id);
+            settings.selectedProductIds = [...current];
+            input.closest('.showcase-product-option')?.classList.toggle('selected', input.checked);
+            updateShowcaseMasterCheckboxes(root);
+        }));
+        root.querySelectorAll('[data-showcase-category-select]').forEach(input => input.addEventListener('change', () => {
+            const ids = (input.dataset.productIds || '').split(',').filter(Boolean).map(Number);
+            const current = new Set(settings.selectedProductIds.map(Number));
+            ids.forEach(id => input.checked ? current.add(id) : current.delete(id));
+            settings.selectedProductIds = [...current];
+            ids.forEach(id => {
+                const productInput = root.querySelector(`[data-showcase-product="${id}"]`);
+                if (productInput) {
+                    productInput.checked = input.checked;
+                    productInput.closest('.showcase-product-option')?.classList.toggle('selected', input.checked);
+                }
+            });
+            updateShowcaseMasterCheckboxes(root);
+        }));
+        root.querySelectorAll('[data-showcase-setting]').forEach(input => input.addEventListener('input', () => {
+            const config = getShowcaseCategoryConfig({ id: input.dataset.categoryId });
+            const key = input.dataset.showcaseSetting;
+            config[key] = input.type === 'checkbox' ? input.checked : (input.type === 'range' ? Number(input.value) : input.value);
+            if (input.nextElementSibling?.tagName === 'OUTPUT') input.nextElementSibling.textContent = key === 'fontSize' ? `${input.value}px` : input.value;
+        }));
+        root.querySelectorAll('[data-showcase-color]').forEach(button => button.addEventListener('click', () => {
+            const key = button.dataset.showcaseColor;
+            getShowcaseCategoryConfig({ id: button.dataset.categoryId })[key] = button.dataset.color;
+            button.closest('.showcase-color-palette').querySelectorAll('.showcase-color').forEach(item => item.classList.remove('active'));
+            button.classList.add('active');
+        }));
+        root.querySelectorAll('[data-showcase-effect]').forEach(button => button.addEventListener('click', () => {
+            settings.effect.type = button.dataset.showcaseEffect;
+            root.querySelectorAll('[data-showcase-effect]').forEach(item => item.classList.toggle('active', item === button));
+        }));
+        root.querySelector('#showcase-effect-enabled')?.addEventListener('change', event => { settings.effect.enabled = event.target.checked; });
+        root.querySelector('#showcase-effect-intensity')?.addEventListener('input', event => {
+            settings.effect.intensity = Number(event.target.value);
+            event.target.nextElementSibling.textContent = event.target.value;
+        });
+        root.querySelector('#copy-showcase-link')?.addEventListener('click', async event => {
+            try { await navigator.clipboard.writeText(link); Notify.success('คัดลอกลิงก์แล้ว', 'พร้อมนำไปแชร์ให้ลูกค้า'); }
+            catch (_) { root.querySelector('#showcase-link-display').select(); document.execCommand('copy'); Notify.success('คัดลอกลิงก์แล้ว', ''); }
+        });
+        root.querySelector('#open-showcase-link')?.addEventListener('click', () => window.open(link, '_blank', 'noopener'));
+        root.querySelector('#save-showcase-settings')?.addEventListener('click', async event => {
+            addLog('showcase_settings', `Selected ${settings.selectedProductIds.length} products`);
+            const saved = await saveState();
+            if (saved) { Notify.success('บันทึกสำเร็จ', 'ลิงก์ร้านค้าใหม่อัปเดตแล้ว'); showSaveFeedback(event.currentTarget); }
+        });
+        updateShowcaseMasterCheckboxes(root);
+    };
+
+    const mountShowcaseEffect = () => {
+        document.getElementById('showcase-effect-layer')?.remove();
+        const settings = ensureShowcaseSettings().effect;
+        if (!isShowcaseView() || !settings.enabled) return;
+        const layer = document.createElement('div');
+        layer.id = 'showcase-effect-layer';
+        layer.className = `showcase-effect-layer effect-${settings.type}`;
+        const count = Math.min(80, Math.max(10, Number(settings.intensity) || 30));
+        const symbols = { confetti: ['', '', '', ''], sparkles: ['✦', '✧', '✨'], balloons: ['🎈'], petals: ['🌸', '❀', '🌼'], fireworks: ['✦', '✺', '✹'] }[settings.type];
+        for (let index = 0; index < count; index += 1) {
+            const particle = document.createElement('span');
+            particle.textContent = symbols[index % symbols.length];
+            particle.style.setProperty('--x', `${(index * 37) % 100}%`);
+            particle.style.setProperty('--y', `${8 + ((index * 29) % 62)}%`);
+            particle.style.setProperty('--delay', `${-((index * 0.37) % 9)}s`);
+            particle.style.setProperty('--duration', `${6 + (index % 7)}s`);
+            particle.style.setProperty('--hue', `${(index * 47) % 360}`);
+            layer.appendChild(particle);
+        }
+        document.body.appendChild(layer);
+    };
+
+    const renderShowcaseStorefront = () => {
+        if (!isShowcaseView()) return;
+        ensureShowcaseFontsLoaded();
+        document.body.classList.add('showcase-storefront-mode');
+        cancelPendingCatalogImages(productGrid);
+        productGrid.innerHTML = '';
+        const settings = ensureShowcaseSettings();
+        const selected = new Set(settings.selectedProductIds.map(Number));
+        const lang = appData.shopSettings.language;
+        const gridSettings = appData.shopSettings.gridLayoutSettings;
+        const isShopClosed = !appData.shopSettings.shopEnabled;
+        currentCategoryName.textContent = lang === 'th' ? 'สินค้าคัดสรรสำหรับคุณ' : 'Selected for you';
+
+        let visibleProductIndex = 0;
+        appData.categories.forEach(category => {
+            const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id) && selected.has(Number(product.id)) && !product.hidden);
+            if (!products.length) return;
+            const config = getShowcaseCategoryConfig(category);
+            const section = document.createElement('section');
+            section.className = 'showcase-store-category';
+            const title = document.createElement('h2');
+            title.className = 'showcase-store-title';
+            title.textContent = config.title?.trim() || ((lang === 'en' && category.name_en) ? category.name_en : category.name);
+            title.style.fontSize = `${Math.min(64, Math.max(12, Number(config.fontSize) || 26))}px`;
+            title.style.fontFamily = config.fontFamily || SHOWCASE_FONTS[0];
+            title.style.color = config.color || '#172554';
+            title.style.webkitTextStroke = `1px ${config.strokeColor || '#ffffff'}`;
+            title.style.textShadow = config.shadowEnabled ? `0 ${Math.max(1, Number(config.shadowStrength) / 2)}px ${Math.max(2, Number(config.shadowStrength))}px rgba(15, 23, 42, .32)` : 'none';
+            section.appendChild(title);
+            const grid = document.createElement('div');
+            grid.className = 'showcase-products-grid';
+            products.forEach(product => {
+                const isPhysicallyOutOfStock = product.stock !== -1 && product.stock <= 0;
+                const isUnavailable = !product.is_available;
+                const productName = (lang === 'en' && product.name_en) ? product.name_en : product.name;
+                const card = document.createElement('div');
+                card.className = `product-card ${gridSettings.frameStyle}`;
+                if (isShopClosed || isUnavailable || isPhysicallyOutOfStock) card.classList.add('unavailable');
+                card.dataset.id = product.id;
+                let unavailable = '';
+                if (isUnavailable || (isPhysicallyOutOfStock && !isShopClosed)) {
+                    const message = (isUnavailable && product.unavailable_message?.trim()) || appData.shopSettings.messageSettings.outOfStockText || translations[lang].outOfStockTemporarily;
+                    unavailable = `<div class="product-card-out-of-stock">${escapeShowcaseText(message)}</div>`;
+                }
+                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
+                visibleProductIndex += 1;
+                grid.appendChild(card);
+            });
+            section.appendChild(grid);
+            productGrid.appendChild(section);
+        });
+        if (!productGrid.children.length) productGrid.innerHTML = `<div class="showcase-store-empty"><span>🛍️</span><h3>${lang === 'th' ? 'ยังไม่มีสินค้าที่เลือกไว้' : 'No selected products yet'}</h3><p>${lang === 'th' ? 'กรุณากลับมาใหม่ภายหลัง' : 'Please check back later'}</p></div>`;
+        applySectionBackground('products');
+        mountShowcaseEffect();
+        checkOrderValidation();
+    };
+    // ===== END: Curated showcase link =====
+
     // ===== START: NEW FUNCTIONS FOR 'manage-stores' =====
 
     const clearAllCountdowns = () => {
@@ -6325,6 +6631,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (activeAdminMenu === 'order-bar' && canAccess('order-bar')) {
             document.getElementById('admin-menu-order-bar').style.display = 'block';
             renderOrderBarSettings();
+        } else if (activeAdminMenu === 'tab-settings' && canAccess('tab-settings')) {
+            document.getElementById('admin-menu-tab-settings').style.display = 'block';
+            renderShowcaseSettingsPage();
         } else if (activeAdminMenu === 'manager-store' && canAccess('manager-store')) {
             document.getElementById('admin-menu-manager-store').style.display = 'block';
             renderSubMenu('manager-store', 'manager-store-tabs');
@@ -10421,7 +10730,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (password.length < 4) { Notify.warning('กรุณากรอกข้อมูล', 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'); return; }
                 if (password !== confirmPassword) { Notify.warning('รหัสผ่านไม่ตรงกัน', 'กรุณากรอกรหัสผ่านให้ตรงกัน'); return; }
                 if (appData.subAdmins.length >= 20) { Notify.warning('ถึงขีดจำกัด', 'ไม่สามารถเพิ่มผู้ใช้ย่อยได้เกิน 20 คน'); return; }
-                const newSubAdmin = { id: -(generateId()), username, name, password, permissions: { 'admin': true, 'festival': true, 'stock': true, 'order-number': true, 'dashboard': true, 'manage-account': true, 'grid-layout': true, 'order-bar': true, 'manage-stores': true } };
+                const newSubAdmin = { id: -(generateId()), username, name, password, permissions: { 'admin': true, 'festival': true, 'stock': true, 'order-number': true, 'dashboard': true, 'manage-account': true, 'grid-layout': true, 'order-bar': true, 'tab-settings': true, 'manage-stores': true } };
                 if (!appData.subAdmins) appData.subAdmins = [];
                 appData.subAdmins.push(newSubAdmin);
                 addLog('Sub-Admin Created', `Username: '${username}', Name: '${name}'`);
@@ -14484,7 +14793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // the defaults will be saved whenever the admin saves next time.
         }
 
-        if (storedLogin === 'true' && token) {
+        if (storedLogin === 'true' && token && !isCustomerViewOnly()) {
             try {
                 const storedUser = JSON.parse(localStorage.getItem('loggedInUser'));
                 if (storedUser) {
@@ -14526,7 +14835,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             adminActiveCategoryId = activeCategoryId;
-            if (catalogPage === 0) {
+            if (isShowcaseView()) {
+                appData.products = appData.allProducts.filter(product => product.category_id === activeCategoryId);
+            } else if (catalogPage === 0) {
                 loadProductsForCategory(activeCategoryId);
             } else {
                 // Keep the category data ready for later without creating hundreds
@@ -14540,7 +14851,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // NEW: Ensure current catalog page is rendered correctly on startup
-        if (catalogPage !== 0) {
+        if (!isShowcaseView() && catalogPage !== 0) {
             console.log('📄 [init] Rendering initial catalog page:', catalogPage);
             const controlsWrapper = document.getElementById('product-controls-wrapper');
             if (controlsWrapper) {
@@ -14568,6 +14879,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('current-category-name').textContent = "สั่งซื้อสินค้าตามเครื่อง";
                 applySectionBackground('product-machines');
             }
+        }
+
+        if (isShowcaseView()) {
+            renderShowcaseStorefront();
         }
 
         setupStockSettingsListeners();
