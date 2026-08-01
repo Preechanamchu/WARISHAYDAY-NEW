@@ -2162,9 +2162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const getShowcaseFreeLabel = () => appData.shopSettings.language === 'en' ? 'Free' : 'ฟรี';
     const notifyShowcaseLimitReached = () => {
         const limit = getShowcaseItemLimit();
-        Notify.success(appData.shopSettings.language === 'en' ? 'Complete' : 'ครบแล้ว', appData.shopSettings.language === 'en'
-            ? `You have selected the maximum of ${limit} items.`
-            : `คุณเลือกสินค้าครบ ${limit} ชิ้นตามที่ร้านกำหนดแล้ว`);
+        Notify.success(appData.shopSettings.language === 'en'
+            ? `${limit} items selected ✅`
+            : `ครบ ${limit} ชิ้นแล้ว ✅️`, '');
     };
 
     const renderCustomerView = () => {
@@ -6181,6 +6181,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const updateShowcaseCategoryPreview = (root, categoryId) => {
+        const preview = root.querySelector(`[data-showcase-preview="${categoryId}"]`);
+        if (!preview) return;
+        const config = getShowcaseCategoryConfig({ id: categoryId });
+        const title = preview.querySelector('.showcase-preview-title');
+        if (!title) return;
+        title.textContent = config.title?.trim() || preview.dataset.fallbackTitle || '';
+        title.style.fontSize = `${Math.min(64, Math.max(12, Number(config.fontSize) || 26))}px`;
+        title.style.fontFamily = config.fontFamily || SHOWCASE_FONTS[0];
+        title.style.color = config.color || '#172554';
+        title.style.webkitTextStroke = `1px ${config.strokeColor || '#ffffff'}`;
+        title.style.textShadow = config.shadowEnabled
+            ? `0 ${Math.max(1, Number(config.shadowStrength) / 2)}px ${Math.max(2, Number(config.shadowStrength))}px rgba(15, 23, 42, .32)`
+            : 'none';
+    };
+
     const renderShowcaseSettingsPage = () => {
         ensureShowcaseFontsLoaded();
         const root = document.getElementById('showcase-settings-root');
@@ -6217,6 +6233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="showcase-setting-group"><div class="showcase-group-heading"><span>02</span><div><strong>รูปแบบตัวอักษร</strong><small>กำหนดฟอนต์และขนาด</small></div></div><div class="showcase-setting-row"><label class="showcase-field"><span>รูปแบบฟอนต์ (20 แบบ)</span><select data-showcase-setting="fontFamily" data-category-id="${category.id}">${SHOWCASE_FONTS.map((font, index) => `<option value="${escapeShowcaseText(font)}" style="font-family:${escapeShowcaseText(font)}" ${config.fontFamily === font ? 'selected' : ''}>${index + 1}. ${escapeShowcaseText(font.replace(/'/g, '').split(',')[0])}</option>`).join('')}</select></label><label class="showcase-field"><span>ขนาดฟอนต์</span><input type="range" min="12" max="64" value="${Number(config.fontSize) || 26}" data-showcase-setting="fontSize" data-category-id="${category.id}"><output>${Number(config.fontSize) || 26}px</output></label></div></div>
                             <div class="showcase-setting-group"><div class="showcase-group-heading"><span>03</span><div><strong>สีและเส้นขอบ</strong><small>เลือกจากชุดสีของระบบ</small></div></div><div class="showcase-setting-row"><div class="showcase-field showcase-palette-field"><span>สีข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.color === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="color" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div><div class="showcase-field showcase-palette-field"><span>สีขอบข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.strokeColor === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="strokeColor" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div></div></div>
                             <div class="showcase-setting-group"><div class="showcase-group-heading"><span>04</span><div><strong>เงาข้อความ</strong><small>เพิ่มมิติให้หัวข้ออ่านง่ายขึ้น</small></div></div><div class="showcase-setting-row showcase-shadow-row"><label class="showcase-shadow-toggle"><input type="checkbox" data-showcase-setting="shadowEnabled" data-category-id="${category.id}" ${config.shadowEnabled ? 'checked' : ''}><span>เปิดเงาข้อความ</span></label><label class="showcase-field"><span>ความเข้มเงา</span><input type="range" min="0" max="20" value="${Number(config.shadowStrength) || 0}" data-showcase-setting="shadowStrength" data-category-id="${category.id}"><output>${Number(config.shadowStrength) || 0}</output></label></div></div>
+                            <div class="showcase-preview-card" data-showcase-preview="${category.id}" data-fallback-title="${escapeShowcaseText((appData.shopSettings.language === 'en' && category.name_en) ? category.name_en : category.name)}"><div class="showcase-preview-head"><span>👁️</span><div><strong>พรีวิวข้อความ</strong><small>แสดงผลตามการตั้งค่าปัจจุบัน</small></div></div><div class="showcase-preview-stage"><h3 class="showcase-preview-title">${escapeShowcaseText(config.title?.trim() || category.name)}</h3><span class="showcase-preview-caption">ตัวอย่างหัวข้อบนหน้าลิงก์ร้านค้าใหม่</span></div></div>
                         </div>
                         <div class="showcase-products-heading"><div><strong>สินค้าที่แสดงในลิงก์</strong><small>ติ๊กเลือกสินค้าได้ไม่จำกัด</small></div><span>${products.length} รายการ</span></div>
                         <div class="showcase-product-picker">
@@ -6251,7 +6268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         root.innerHTML = `
             <div class="showcase-admin-shell">
-                <div class="showcase-admin-hero"><div><span class="showcase-eyebrow">CURATED STOREFRONT</span><h2>🎯 ตั้งค่าของแถบ</h2><p>เลือกรายการสินค้าและออกแบบหัวข้อสำหรับลิงก์ร้านค้าเฉพาะ</p></div><button type="button" class="btn btn-primary" id="save-showcase-settings">💾 บันทึกการตั้งค่า</button></div>
+                <div class="showcase-admin-hero"><div><h2>🎯 ตั้งค่าของแถบ ฟรี</h2></div><button type="button" class="btn btn-primary" id="save-showcase-settings">💾 บันทึกการตั้งค่า</button></div>
                 <div class="showcase-link-card"><div class="showcase-link-info"><span class="showcase-link-icon">🔗</span><div><strong>ลิงก์ร้านค้าใหม่</strong><small>ลิงก์สั้นสำหรับแชร์ หน้านี้จะแสดงเฉพาะสินค้าที่เลือก</small></div></div><div class="showcase-link-actions"><div class="showcase-url-field"><span>${escapeShowcaseText(linkProtocol)}</span><input id="showcase-link-display" value="${escapeShowcaseText(linkDisplay)}" data-full-url="${escapeShowcaseText(link)}" readonly></div><button type="button" class="btn btn-secondary" id="copy-showcase-link">คัดลอก</button><button type="button" class="btn btn-primary" id="open-showcase-link">เปิดดู</button></div></div>
                 ${conditionsCard}
                 <div class="showcase-settings-tabs"><button type="button" data-showcase-tab="products" class="${activeShowcaseSettingsTab === 'products' ? 'active' : ''}">🛍️ สินค้าและหัวข้อ</button><button type="button" data-showcase-tab="effects" class="${activeShowcaseSettingsTab === 'effects' ? 'active' : ''}">🎉 เอฟเฟ็กต์ฉลอง 5 แบบ</button></div>
@@ -6302,12 +6319,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const key = input.dataset.showcaseSetting;
             config[key] = input.type === 'checkbox' ? input.checked : (input.type === 'range' ? Number(input.value) : input.value);
             if (input.nextElementSibling?.tagName === 'OUTPUT') input.nextElementSibling.textContent = key === 'fontSize' ? `${input.value}px` : input.value;
+            updateShowcaseCategoryPreview(root, input.dataset.categoryId);
         }));
         root.querySelectorAll('[data-showcase-color]').forEach(button => button.addEventListener('click', () => {
             const key = button.dataset.showcaseColor;
             getShowcaseCategoryConfig({ id: button.dataset.categoryId })[key] = button.dataset.color;
             button.closest('.showcase-color-palette').querySelectorAll('.showcase-color').forEach(item => item.classList.remove('active'));
             button.classList.add('active');
+            updateShowcaseCategoryPreview(root, button.dataset.categoryId);
         }));
         root.querySelectorAll('[data-showcase-effect]').forEach(button => button.addEventListener('click', () => {
             settings.effect.type = button.dataset.showcaseEffect;
@@ -6340,6 +6359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const saved = await saveState();
             if (saved) { Notify.success('บันทึกสำเร็จ', 'ลิงก์ร้านค้าใหม่อัปเดตแล้ว'); showSaveFeedback(event.currentTarget); }
         });
+        root.querySelectorAll('[data-showcase-preview]').forEach(preview => updateShowcaseCategoryPreview(root, preview.dataset.showcasePreview));
         updateShowcaseMasterCheckboxes(root);
     };
 
