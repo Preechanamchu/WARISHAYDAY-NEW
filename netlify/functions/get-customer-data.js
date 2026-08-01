@@ -10,14 +10,13 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 1. ดึงข้อมูลหมวดหมู่ (Categories)
-    const categoriesResult = await db.query('SELECT * FROM categories ORDER BY sort_order ASC');
-
-    // 2. ดึงข้อมูลสินค้า (Products) ทั้งหมด
-    const productsResult = await db.query('SELECT * FROM products ORDER BY category_id, level ASC');
-
-    // 3. ดึงข้อมูลการตั้งค่าร้าน (Shop Settings) ทั้งหมดจากฐานข้อมูล
-    const settingsResult = await db.query('SELECT settings_json FROM shop_settings WHERE id = 1');
+    // These queries do not depend on one another. Running them together removes
+    // two unnecessary database round trips from the customer startup path.
+    const [categoriesResult, productsResult, settingsResult] = await Promise.all([
+      db.query('SELECT * FROM categories ORDER BY sort_order ASC'),
+      db.query('SELECT * FROM products ORDER BY category_id, level ASC'),
+      db.query('SELECT settings_json FROM shop_settings WHERE id = 1')
+    ]);
     const allShopSettings = settingsResult.rows[0]?.settings_json || {};
     const productMachines = await readProductMachines(db, allShopSettings.productMachines || []);
 
@@ -31,7 +30,9 @@ exports.handler = async (event, context) => {
       shopNameColor: allShopSettings.shopNameColor,
       sloganColor: allShopSettings.sloganColor,
       themeName: allShopSettings.themeName,
-      logo: allShopSettings.logo,
+      // A disabled Base64 logo can be hundreds of KB and is not rendered by customers.
+      // Keep it available in Admin API, but omit it from the public payload until enabled.
+      logo: allShopSettings.useLogo ? allShopSettings.logo : '',
       useLogo: allShopSettings.useLogo,
       darkMode: allShopSettings.darkMode,
 
