@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showcaseSettings: {
                 selectedProductIds: [],
                 categories: {},
+                maxItems: 10,
                 effect: { enabled: false, type: 'confetti', intensity: 30 }
             },
 
@@ -322,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = appData.shopSettings.showcaseSettings;
         if (!Array.isArray(settings.selectedProductIds)) settings.selectedProductIds = [];
         if (!settings.categories || typeof settings.categories !== 'object' || Array.isArray(settings.categories)) settings.categories = {};
+        settings.maxItems = Math.min(100000, Math.max(1, Math.floor(Number(settings.maxItems) || 10)));
         if (!settings.effect || typeof settings.effect !== 'object') settings.effect = {};
         settings.effect.enabled = settings.effect.enabled === true;
         settings.effect.type = ['confetti', 'sparkles', 'balloons', 'petals', 'fireworks'].includes(settings.effect.type)
@@ -1685,6 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAppliedPromo = null;
     let currentSortOrder = 'level_asc';
     let activeShowcaseSettingsTab = 'products';
+    const expandedShowcaseCategoryIds = new Set();
 
     let dailyTrafficChart, productSalesChart, categorySalesChart;
     // Advanced Dashboard Charts
@@ -2140,10 +2143,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isCustomerViewOnly = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('customer') === 'true' || urlParams.get('showcase') === '1';
+        return urlParams.get('customer') === 'true' || urlParams.get('showcase') === '1' || urlParams.get('s') === '1';
     };
 
-    const isShowcaseView = () => new URLSearchParams(window.location.search).get('showcase') === '1';
+    const isShowcaseView = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('s') === '1' || urlParams.get('showcase') === '1';
+    };
+
+    const getShowcaseItemLimit = () => ensureShowcaseSettings().maxItems;
+    const getActiveCartStorageKey = () => {
+        if (!isShowcaseView()) return 'warishayday_cart';
+        const storeId = new URLSearchParams(window.location.search).get('store') || 'default';
+        return `warishayday_showcase_cart_${storeId}`;
+    };
+    const getCartTotalQuantity = () => Object.values(appData.cart || {})
+        .reduce((total, quantity) => total + Math.max(0, Number(quantity) || 0), 0);
+    const getShowcaseFreeLabel = () => appData.shopSettings.language === 'en' ? 'Free' : 'ฟรี';
+    const notifyShowcaseLimitReached = () => {
+        const limit = getShowcaseItemLimit();
+        Notify.success(appData.shopSettings.language === 'en' ? 'Complete' : 'ครบแล้ว', appData.shopSettings.language === 'en'
+            ? `You have selected the maximum of ${limit} items.`
+            : `คุณเลือกสินค้าครบ ${limit} ชิ้นตามที่ร้านกำหนดแล้ว`);
+    };
 
     const renderCustomerView = () => {
         applyTheme();
@@ -2356,6 +2378,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (operation !== 0) {
             let currentQuantity = appData.cart[productId] || 0;
+            if (isShowcaseView()) {
+                const remaining = getShowcaseItemLimit() - getCartTotalQuantity();
+                if (remaining <= 0) {
+                    notifyShowcaseLimitReached();
+                    return;
+                }
+                operation = Math.min(operation, remaining);
+            }
             let newQuantity = Math.max(0, currentQuantity + operation);
 
             if (maxOrder && maxOrder > 0 && newQuantity > maxOrder) {
@@ -2369,10 +2399,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 appData.cart[productId] = newQuantity;
             }
 
-            localStorage.setItem('warishayday_cart', JSON.stringify(appData.cart));
+            localStorage.setItem(getActiveCartStorageKey(), JSON.stringify(appData.cart));
 
             syncVisibleProductQuantities();
             checkOrderValidation();
+            if (isShowcaseView() && getCartTotalQuantity() >= getShowcaseItemLimit()) {
+                notifyShowcaseLimitReached();
+            }
         }
     });
 
@@ -2381,6 +2414,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const calculatePrice = (categoryId, quantity) => {
+        if (isShowcaseView()) return { price: 0, type: getShowcaseFreeLabel() };
         const category = appData.categories.find(c => c.id === categoryId);
         if (!category) return { price: 0, type: 'ไม่มีราคา' };
 
@@ -2637,6 +2671,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const itemsByCategory = {};
         const lang = appData.shopSettings.language;
         const isShopClosed = !appData.shopSettings.shopEnabled;
+        const isShowcaseFreeOrder = isShowcaseView();
 
         let grandTotalPrice = 0;
 
@@ -2667,13 +2702,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxOrder = category.max_order_quantity;
             const catName = (lang === 'en' && category.name_en) ? category.name_en : category.name;
 
-            if (total > 0 && total < minOrder) {
+            if (!isShowcaseFreeOrder && total > 0 && total < minOrder) {
                 const message = lang === 'th'
                     ? `➡️ หมวด "${catName}" ขั้นต่ำ ${minOrder} ชิ้น (ขาด ${minOrder - total} ชิ้น)`
                     : `➡️ Category "${catName}" requires a minimum of ${minOrder} items (short by ${minOrder - total})`;
                 minOrderMessages.push(`<div class="validation-link" data-cat-id="${categoryId}">${message}</div>`);
             }
-            if (maxOrder && total > maxOrder) {
+            if (!isShowcaseFreeOrder && maxOrder && total > maxOrder) {
                 const message = lang === 'th'
                     ? `➡️ หมวด "${catName}" สูงสุด ${maxOrder} ชิ้น (เกิน ${total - maxOrder} ชิ้น)`
                     : `➡️ Category "${catName}" allows a maximum of ${maxOrder} items (over by ${total - maxOrder})`;
@@ -2684,6 +2719,11 @@ document.addEventListener('DOMContentLoaded', () => {
             grandTotalPrice += priceResult.price;
         }
 
+        if (isShowcaseFreeOrder && getCartTotalQuantity() > getShowcaseItemLimit()) {
+            const limit = getShowcaseItemLimit();
+            maxOrderMessages.push(`<div>${lang === 'th' ? `เลือกสินค้าได้สูงสุด ${limit} ชิ้น กรุณาลดจำนวนสินค้า` : `You can select up to ${limit} items. Please reduce the quantity.`}</div>`);
+        }
+
         let discountAmount = 0;
         let finalTotal = grandTotalPrice;
         if (currentAppliedPromo) {
@@ -2692,7 +2732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const hasUpgradeInCart = Object.keys(appData.cart).some(k => String(k).startsWith('upgrade_'));
         const hasCartItems = Object.keys(appData.cart).length > 0;
-        const canOrder = minOrderMessages.length === 0 && maxOrderMessages.length === 0 && (grandTotalPrice > 0 || hasUpgradeInCart) && !isShopClosed;
+        const canOrder = minOrderMessages.length === 0 && maxOrderMessages.length === 0 && (isShowcaseFreeOrder ? getCartTotalQuantity() > 0 : (grandTotalPrice > 0 || hasUpgradeInCart)) && !isShopClosed;
         confirmOrderBtn.disabled = !canOrder;
         viewOrderBtn.disabled = isShopClosed || !hasCartItems;
 
@@ -2700,7 +2740,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allMessages.length > 0) {
             orderValidationMsg.innerHTML = allMessages.join('');
         } else {
-            if (grandTotalPrice > 0 || hasUpgradeInCart) {
+            if (isShowcaseFreeOrder && hasCartItems) {
+                orderValidationMsg.innerHTML = `<span class="grand-total showcase-free-total">${translations[lang].grandTotalLabel}: ${getShowcaseFreeLabel()}</span>`;
+            } else if (grandTotalPrice > 0 || hasUpgradeInCart) {
                 let summaryHTML = `<span class="grand-total">${translations[lang].grandTotalLabel}: ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${lang === 'th' ? 'บาท' : 'THB'}</span>`;
                 orderValidationMsg.innerHTML = summaryHTML;
             } else {
@@ -2851,7 +2893,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryText += `${translations[lang].discountLabel} (${currentAppliedPromo.code}): -${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}\n`;
         }
 
-        summaryText += `${translations[lang].grandTotalLabel}: ${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}`;
+        summaryText += `${translations[lang].grandTotalLabel}: ${isShowcaseView() ? getShowcaseFreeLabel() : `${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}`}`;
 
         return summaryText;
     };
@@ -3284,7 +3326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `<div class="summary-line grand-total" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px;">
                     <span>${translations[lang].grandTotalLabel}:</span>
-                    <span>${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}</span>
+                    <span>${isShowcaseView() ? getShowcaseFreeLabel() : `${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}`}</span>
                 </div>`;
 
         // ===== START: DYNAMIC TAG / MAIL INPUT =====
@@ -3510,7 +3552,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryDiv.innerHTML += `<div class="summary-line" style="color: var(--danger-color);"><span>${translations[lang].discountLabel} (${currentAppliedPromo.code}):</span><span>-${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}</span></div>`;
         }
 
-        summaryDiv.innerHTML += `<div class="summary-line grand-total"><span>${translations[lang].grandTotalLabel}:</span><span>${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}</span></div>`;
+        summaryDiv.innerHTML += `<div class="summary-line grand-total"><span>${translations[lang].grandTotalLabel}:</span><span>${isShowcaseView() ? getShowcaseFreeLabel() : `${finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currencySuffix}`}</span></div>`;
 
         cartDetails.appendChild(summaryDiv);
     };
@@ -3531,7 +3573,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxOrder = category?.max_order_quantity;
 
         if (target.classList.contains('btn-op')) {
-            const operation = parseInt(target.dataset.op);
+            let operation = parseInt(target.dataset.op);
+            if (isShowcaseView() && operation > 0) {
+                const remaining = getShowcaseItemLimit() - getCartTotalQuantity();
+                if (remaining <= 0) {
+                    notifyShowcaseLimitReached();
+                    return;
+                }
+                operation = Math.min(operation, remaining);
+            }
             let newQuantity = Math.max(0, currentQuantity + operation);
 
             if (maxOrder && maxOrder > 0 && newQuantity > maxOrder) {
@@ -3553,9 +3603,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        localStorage.setItem('warishayday_cart', JSON.stringify(appData.cart));
+        localStorage.setItem(getActiveCartStorageKey(), JSON.stringify(appData.cart));
         renderViewOrderModal();
         checkOrderValidation();
+        if (isShowcaseView() && target.classList.contains('btn-op') && Number(target.dataset.op) > 0 && getCartTotalQuantity() >= getShowcaseItemLimit()) {
+            notifyShowcaseLimitReached();
+        }
         
         const lang = appData.shopSettings.language;
         if (catalogPage === 1 && typeof renderCoinCatalogFrontend === 'function') {
@@ -3593,7 +3646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const promoContainer = document.getElementById('promo-code-container');
-        if (appData.shopSettings.promotions && appData.shopSettings.promotions.length > 0) {
+        if (!isShowcaseView() && appData.shopSettings.promotions && appData.shopSettings.promotions.length > 0) {
             promoContainer.style.display = 'block';
         } else {
             promoContainer.style.display = 'none';
@@ -5252,7 +5305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: orderNumber, // <-- Use the newly generated number
                 // ===== END: MODIFICATION =====
                 timestamp: new Date().toISOString(),
-                total: totalOrderPrice,
+                total: isShowcaseView() ? 0 : totalOrderPrice,
                 items: { ...appData.cart },
                 status: 'new',
                 customerTag: tagValue,
@@ -5324,7 +5377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.cart = {};
             appData.upgradeOrders = {};
             currentAppliedPromo = null;
-            localStorage.removeItem('warishayday_cart');
+            localStorage.removeItem(getActiveCartStorageKey());
             localStorage.removeItem('warishayday_upgrade_orders');
             document.getElementById('promo-code-input').value = '';
 
@@ -5348,7 +5401,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 // ===== END FIX =====
 
-                renderProducts();
+                if (isShowcaseView()) renderShowcaseStorefront();
+                else renderProducts();
                 checkOrderValidation();
                 if (isAdminLoggedIn) {
                     renderOrderNumberView(orderDatePicker ? orderDatePicker.selectedDates : []);
@@ -5385,7 +5439,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     appData.upgradeOrders = {};
                     currentAppliedPromo = null;
                     document.getElementById('promo-code-input').value = '';
-                    localStorage.removeItem('warishayday_cart');
+                    localStorage.removeItem(getActiveCartStorageKey());
                     localStorage.removeItem('warishayday_upgrade_orders');
 
                     // ===== FIX: Re-render only the current page, preserve header =====
@@ -6111,8 +6165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const store = current.searchParams.get('store');
         const url = new URL(window.location.origin + window.location.pathname);
         if (store) url.searchParams.set('store', store);
-        url.searchParams.set('customer', 'true');
-        url.searchParams.set('showcase', '1');
+        url.searchParams.set('s', '1');
         return url.toString();
     };
 
@@ -6135,35 +6188,56 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = ensureShowcaseSettings();
         const selected = new Set(settings.selectedProductIds.map(Number));
         const link = getShowcaseUrl();
+        const linkUrl = new URL(link);
+        const linkProtocol = `${linkUrl.protocol}//`;
+        const linkDisplay = `${linkUrl.host}${linkUrl.pathname}${linkUrl.search}`;
+        if (!root.dataset.showcaseCollapseInitialized && appData.categories[0]) {
+            expandedShowcaseCategoryIds.add(String(appData.categories[0].id));
+            root.dataset.showcaseCollapseInitialized = 'true';
+        }
 
         const productPanel = appData.categories.map(category => {
             const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id));
             const config = getShowcaseCategoryConfig(category);
             const ids = products.map(product => Number(product.id));
+            const isExpanded = expandedShowcaseCategoryIds.has(String(category.id));
             return `
-                <section class="showcase-admin-category">
+                <section class="showcase-admin-category ${isExpanded ? 'is-expanded' : 'is-collapsed'}" data-showcase-category="${category.id}">
                     <div class="showcase-admin-category-head">
                         <label class="showcase-master-label">
                             <input type="checkbox" data-showcase-category-select data-category-id="${category.id}" data-product-ids="${ids.join(',')}">
                             <span>${category.icon ? `<img src="${escapeShowcaseText(category.icon)}" alt="" loading="lazy" decoding="async">` : '📦'}</span>
-                            <strong>${escapeShowcaseText(category.name)}</strong>
+                            <span class="showcase-category-name"><strong>${escapeShowcaseText(category.name)}</strong><small>เลือกสินค้าและออกแบบหัวข้อของหมวดนี้</small></span>
                         </label>
-                        <span class="showcase-selected-count" data-showcase-count="${category.id}">0/${ids.length} สินค้า</span>
+                        <div class="showcase-category-head-actions"><span class="showcase-selected-count" data-showcase-count="${category.id}">0/${ids.length} สินค้า</span><button type="button" class="showcase-collapse-btn" data-showcase-toggle="${category.id}" aria-expanded="${isExpanded}" title="${isExpanded ? 'พับหมวดหมู่' : 'เปิดหมวดหมู่'}"><span>${isExpanded ? '−' : '+'}</span></button></div>
                     </div>
-                    <div class="showcase-heading-settings">
-                        <label class="showcase-field showcase-field-wide"><span>ข้อความหัวข้อแทนชื่อหมวดหมู่</span><input type="text" data-showcase-setting="title" data-category-id="${category.id}" value="${escapeShowcaseText(config.title)}" placeholder="${escapeShowcaseText(category.name)}"></label>
-                        <label class="showcase-field"><span>ขนาดฟอนต์</span><input type="range" min="12" max="64" value="${Number(config.fontSize) || 26}" data-showcase-setting="fontSize" data-category-id="${category.id}"><output>${Number(config.fontSize) || 26}px</output></label>
-                        <label class="showcase-field"><span>รูปแบบฟอนต์ (20 แบบ)</span><select data-showcase-setting="fontFamily" data-category-id="${category.id}">${SHOWCASE_FONTS.map((font, index) => `<option value="${escapeShowcaseText(font)}" style="font-family:${escapeShowcaseText(font)}" ${config.fontFamily === font ? 'selected' : ''}>${index + 1}. ${escapeShowcaseText(font.replace(/'/g, '').split(',')[0])}</option>`).join('')}</select></label>
-                        <div class="showcase-field showcase-palette-field"><span>สีข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.color === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="color" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div>
-                        <div class="showcase-field showcase-palette-field"><span>สีขอบข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.strokeColor === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="strokeColor" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div>
-                        <label class="showcase-shadow-toggle"><input type="checkbox" data-showcase-setting="shadowEnabled" data-category-id="${category.id}" ${config.shadowEnabled ? 'checked' : ''}><span>เปิดเงาข้อความ</span></label>
-                        <label class="showcase-field"><span>ความเข้มเงา</span><input type="range" min="0" max="20" value="${Number(config.shadowStrength) || 0}" data-showcase-setting="shadowStrength" data-category-id="${category.id}"><output>${Number(config.shadowStrength) || 0}</output></label>
-                    </div>
-                    <div class="showcase-product-picker">
-                        ${products.length ? products.map(product => `<label class="showcase-product-option ${selected.has(Number(product.id)) ? 'selected' : ''}"><input type="checkbox" data-showcase-product="${product.id}" ${selected.has(Number(product.id)) ? 'checked' : ''}><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/80x80?text=?')}" alt="" loading="lazy" decoding="async"><span><strong>${escapeShowcaseText(product.name)}</strong><small>LV ${Number(product.level) || 0}</small></span></label>`).join('') : '<p class="showcase-empty-admin">ยังไม่มีสินค้าในหมวดหมู่นี้</p>'}
+                    <div class="showcase-category-body" ${isExpanded ? '' : 'hidden'}>
+                        <div class="showcase-settings-groups">
+                            <div class="showcase-setting-group showcase-title-group"><div class="showcase-group-heading"><span>01</span><div><strong>ข้อความหัวข้อ</strong><small>ใช้แทนชื่อเดิมของหมวดหมู่ในลิงก์ใหม่</small></div></div><label class="showcase-field showcase-field-wide"><span>ข้อความที่ต้องการแสดง</span><input type="text" data-showcase-setting="title" data-category-id="${category.id}" value="${escapeShowcaseText(config.title)}" placeholder="${escapeShowcaseText(category.name)}"></label></div>
+                            <div class="showcase-setting-group"><div class="showcase-group-heading"><span>02</span><div><strong>รูปแบบตัวอักษร</strong><small>กำหนดฟอนต์และขนาด</small></div></div><div class="showcase-setting-row"><label class="showcase-field"><span>รูปแบบฟอนต์ (20 แบบ)</span><select data-showcase-setting="fontFamily" data-category-id="${category.id}">${SHOWCASE_FONTS.map((font, index) => `<option value="${escapeShowcaseText(font)}" style="font-family:${escapeShowcaseText(font)}" ${config.fontFamily === font ? 'selected' : ''}>${index + 1}. ${escapeShowcaseText(font.replace(/'/g, '').split(',')[0])}</option>`).join('')}</select></label><label class="showcase-field"><span>ขนาดฟอนต์</span><input type="range" min="12" max="64" value="${Number(config.fontSize) || 26}" data-showcase-setting="fontSize" data-category-id="${category.id}"><output>${Number(config.fontSize) || 26}px</output></label></div></div>
+                            <div class="showcase-setting-group"><div class="showcase-group-heading"><span>03</span><div><strong>สีและเส้นขอบ</strong><small>เลือกจากชุดสีของระบบ</small></div></div><div class="showcase-setting-row"><div class="showcase-field showcase-palette-field"><span>สีข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.color === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="color" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div><div class="showcase-field showcase-palette-field"><span>สีขอบข้อความ (12 สี)</span><div class="showcase-color-palette">${SHOWCASE_COLORS.map(color => `<button type="button" class="showcase-color ${config.strokeColor === color ? 'active' : ''}" style="--swatch:${color}" data-showcase-color="strokeColor" data-category-id="${category.id}" data-color="${color}" title="${color}"></button>`).join('')}</div></div></div></div>
+                            <div class="showcase-setting-group"><div class="showcase-group-heading"><span>04</span><div><strong>เงาข้อความ</strong><small>เพิ่มมิติให้หัวข้ออ่านง่ายขึ้น</small></div></div><div class="showcase-setting-row showcase-shadow-row"><label class="showcase-shadow-toggle"><input type="checkbox" data-showcase-setting="shadowEnabled" data-category-id="${category.id}" ${config.shadowEnabled ? 'checked' : ''}><span>เปิดเงาข้อความ</span></label><label class="showcase-field"><span>ความเข้มเงา</span><input type="range" min="0" max="20" value="${Number(config.shadowStrength) || 0}" data-showcase-setting="shadowStrength" data-category-id="${category.id}"><output>${Number(config.shadowStrength) || 0}</output></label></div></div>
+                        </div>
+                        <div class="showcase-products-heading"><div><strong>สินค้าที่แสดงในลิงก์</strong><small>ติ๊กเลือกสินค้าได้ไม่จำกัด</small></div><span>${products.length} รายการ</span></div>
+                        <div class="showcase-product-picker">
+                            ${products.length ? products.map(product => `<label class="showcase-product-option ${selected.has(Number(product.id)) ? 'selected' : ''}"><input type="checkbox" data-showcase-product="${product.id}" ${selected.has(Number(product.id)) ? 'checked' : ''}><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/80x80?text=?')}" alt="" loading="lazy" decoding="async"><span><strong>${escapeShowcaseText(product.name)}</strong><small>LV ${Number(product.level) || 0}</small></span></label>`).join('') : '<p class="showcase-empty-admin">ยังไม่มีสินค้าในหมวดหมู่นี้</p>'}
+                        </div>
                     </div>
                 </section>`;
         }).join('');
+
+        const conditionsCard = `
+            <section class="showcase-condition-card">
+                <div class="showcase-condition-info">
+                    <span class="showcase-condition-icon">🎁</span>
+                    <div><strong>เงื่อนไขหน้าลิงก์ร้านค้าใหม่</strong><small>สินค้าทุกชิ้นในหน้านี้ราคา 0 บาท และยอดสุทธิแสดงเป็น “ฟรี”</small></div>
+                </div>
+                <label class="showcase-limit-field">
+                    <span>จำนวนสินค้าที่ลูกค้ากดได้สูงสุด</span>
+                    <div><input id="showcase-max-items" type="number" min="1" max="100000" step="1" value="${settings.maxItems}"><span>ชิ้น</span></div>
+                    <small>เมื่อเลือกครบ ระบบจะแจ้งเตือนว่า “ครบแล้ว”</small>
+                </label>
+            </section>`;
 
         const effectsPanel = `
             <section class="showcase-effects-panel">
@@ -6178,7 +6252,8 @@ document.addEventListener('DOMContentLoaded', () => {
         root.innerHTML = `
             <div class="showcase-admin-shell">
                 <div class="showcase-admin-hero"><div><span class="showcase-eyebrow">CURATED STOREFRONT</span><h2>🎯 ตั้งค่าของแถบ</h2><p>เลือกรายการสินค้าและออกแบบหัวข้อสำหรับลิงก์ร้านค้าเฉพาะ</p></div><button type="button" class="btn btn-primary" id="save-showcase-settings">💾 บันทึกการตั้งค่า</button></div>
-                <div class="showcase-link-card"><div><strong>ลิงก์ร้านค้าใหม่</strong><small>ลูกค้าจะเห็นเฉพาะสินค้าที่เลือกไว้ด้านล่าง</small></div><div class="showcase-link-actions"><input id="showcase-link-display" value="${escapeShowcaseText(link)}" readonly><button type="button" class="btn btn-secondary" id="copy-showcase-link">คัดลอก</button><button type="button" class="btn btn-primary" id="open-showcase-link">เปิดดู</button></div></div>
+                <div class="showcase-link-card"><div class="showcase-link-info"><span class="showcase-link-icon">🔗</span><div><strong>ลิงก์ร้านค้าใหม่</strong><small>ลิงก์สั้นสำหรับแชร์ หน้านี้จะแสดงเฉพาะสินค้าที่เลือก</small></div></div><div class="showcase-link-actions"><div class="showcase-url-field"><span>${escapeShowcaseText(linkProtocol)}</span><input id="showcase-link-display" value="${escapeShowcaseText(linkDisplay)}" data-full-url="${escapeShowcaseText(link)}" readonly></div><button type="button" class="btn btn-secondary" id="copy-showcase-link">คัดลอก</button><button type="button" class="btn btn-primary" id="open-showcase-link">เปิดดู</button></div></div>
+                ${conditionsCard}
                 <div class="showcase-settings-tabs"><button type="button" data-showcase-tab="products" class="${activeShowcaseSettingsTab === 'products' ? 'active' : ''}">🛍️ สินค้าและหัวข้อ</button><button type="button" data-showcase-tab="effects" class="${activeShowcaseSettingsTab === 'effects' ? 'active' : ''}">🎉 เอฟเฟ็กต์ฉลอง 5 แบบ</button></div>
                 <div class="showcase-settings-content">${activeShowcaseSettingsTab === 'products' ? productPanel : effectsPanel}</div>
             </div>`;
@@ -6186,6 +6261,19 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelectorAll('[data-showcase-tab]').forEach(button => button.addEventListener('click', () => {
             activeShowcaseSettingsTab = button.dataset.showcaseTab;
             renderShowcaseSettingsPage();
+        }));
+        root.querySelectorAll('[data-showcase-toggle]').forEach(button => button.addEventListener('click', () => {
+            const categoryId = String(button.dataset.showcaseToggle);
+            const section = button.closest('.showcase-admin-category');
+            const body = section?.querySelector('.showcase-category-body');
+            const willExpand = !expandedShowcaseCategoryIds.has(categoryId);
+            if (willExpand) expandedShowcaseCategoryIds.add(categoryId); else expandedShowcaseCategoryIds.delete(categoryId);
+            section?.classList.toggle('is-expanded', willExpand);
+            section?.classList.toggle('is-collapsed', !willExpand);
+            if (body) body.hidden = !willExpand;
+            button.setAttribute('aria-expanded', String(willExpand));
+            button.title = willExpand ? 'พับหมวดหมู่' : 'เปิดหมวดหมู่';
+            button.querySelector('span').textContent = willExpand ? '−' : '+';
         }));
         root.querySelectorAll('[data-showcase-product]').forEach(input => input.addEventListener('change', () => {
             const id = Number(input.dataset.showcaseProduct);
@@ -6226,13 +6314,25 @@ document.addEventListener('DOMContentLoaded', () => {
             root.querySelectorAll('[data-showcase-effect]').forEach(item => item.classList.toggle('active', item === button));
         }));
         root.querySelector('#showcase-effect-enabled')?.addEventListener('change', event => { settings.effect.enabled = event.target.checked; });
+        root.querySelector('#showcase-max-items')?.addEventListener('input', event => {
+            settings.maxItems = Math.min(100000, Math.max(1, Math.floor(Number(event.target.value) || 1)));
+        });
+        root.querySelector('#showcase-max-items')?.addEventListener('blur', event => { event.target.value = settings.maxItems; });
         root.querySelector('#showcase-effect-intensity')?.addEventListener('input', event => {
             settings.effect.intensity = Number(event.target.value);
             event.target.nextElementSibling.textContent = event.target.value;
         });
         root.querySelector('#copy-showcase-link')?.addEventListener('click', async event => {
             try { await navigator.clipboard.writeText(link); Notify.success('คัดลอกลิงก์แล้ว', 'พร้อมนำไปแชร์ให้ลูกค้า'); }
-            catch (_) { root.querySelector('#showcase-link-display').select(); document.execCommand('copy'); Notify.success('คัดลอกลิงก์แล้ว', ''); }
+            catch (_) {
+                const input = root.querySelector('#showcase-link-display');
+                const displayValue = input.value;
+                input.value = link;
+                input.select();
+                document.execCommand('copy');
+                input.value = displayValue;
+                Notify.success('คัดลอกลิงก์แล้ว', '');
+            }
         });
         root.querySelector('#open-showcase-link')?.addEventListener('click', () => window.open(link, '_blank', 'noopener'));
         root.querySelector('#save-showcase-settings')?.addEventListener('click', async event => {
@@ -6276,9 +6376,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const lang = appData.shopSettings.language;
         const gridSettings = appData.shopSettings.gridLayoutSettings;
         const isShopClosed = !appData.shopSettings.shopEnabled;
-        currentCategoryName.textContent = lang === 'th' ? 'สินค้าคัดสรรสำหรับคุณ' : 'Selected for you';
+        currentCategoryName.textContent = '';
+        currentCategoryName.style.display = 'none';
 
         let visibleProductIndex = 0;
+        let isFirstVisibleCategory = true;
         appData.categories.forEach(category => {
             const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id) && selected.has(Number(product.id)) && !product.hidden);
             if (!products.length) return;
@@ -6293,7 +6395,18 @@ document.addEventListener('DOMContentLoaded', () => {
             title.style.color = config.color || '#172554';
             title.style.webkitTextStroke = `1px ${config.strokeColor || '#ffffff'}`;
             title.style.textShadow = config.shadowEnabled ? `0 ${Math.max(1, Number(config.shadowStrength) / 2)}px ${Math.max(2, Number(config.shadowStrength))}px rgba(15, 23, 42, .32)` : 'none';
-            section.appendChild(title);
+            if (isFirstVisibleCategory) {
+                currentCategoryName.textContent = title.textContent;
+                currentCategoryName.style.display = '';
+                currentCategoryName.style.fontSize = title.style.fontSize;
+                currentCategoryName.style.fontFamily = title.style.fontFamily;
+                currentCategoryName.style.color = title.style.color;
+                currentCategoryName.style.webkitTextStroke = title.style.webkitTextStroke;
+                currentCategoryName.style.textShadow = title.style.textShadow;
+                isFirstVisibleCategory = false;
+            } else {
+                section.appendChild(title);
+            }
             const grid = document.createElement('div');
             grid.className = 'showcase-products-grid';
             products.forEach(product => {
@@ -6309,7 +6422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const message = (isUnavailable && product.unavailable_message?.trim()) || appData.shopSettings.messageSettings.outOfStockText || translations[lang].outOfStockTemporarily;
                     unavailable = `<div class="product-card-out-of-stock">${escapeShowcaseText(message)}</div>`;
                 }
-                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
+                card.innerHTML = `<span class="product-card-level">LV ${Number(product.level) || 0}</span><img src="${escapeShowcaseText(product.icon || 'https://placehold.co/100x100/e0e0e0/757575?text=?')}" alt="${escapeShowcaseText(productName)}" class="product-card-icon" ${getCatalogImageAttributes(visibleProductIndex)}><span class="product-card-name">${escapeShowcaseText(productName)}</span><span class="showcase-free-price">0 ${lang === 'th' ? 'บาท' : 'THB'}</span><div class="product-card-controls"><span class="product-card-quantity">${appData.cart[product.id] || 0}</span></div>${unavailable}`;
                 visibleProductIndex += 1;
                 grid.appendChild(card);
             });
@@ -14730,14 +14843,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== END: HAYDAY AI BOT INTEGRATION =====
 
     const init = async () => {
-        const savedCart = localStorage.getItem('warishayday_cart');
+        const savedCart = localStorage.getItem(getActiveCartStorageKey());
         if (savedCart) {
             try {
                 appData.cart = JSON.parse(savedCart);
                 appData.coinOption = localStorage.getItem('warishayday_coin_option') || 'self';
             } catch (e) {
                 console.error("Failed to parse saved cart:", e);
-                localStorage.removeItem('warishayday_cart');
+                localStorage.removeItem(getActiveCartStorageKey());
             }
         }
         
@@ -18003,7 +18116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // โหลด Cart (ตะกร้า)
-                const cartKey = `${storePrefix}cart`;
+                const cartKey = isShowcaseView() ? getActiveCartStorageKey() : `${storePrefix}cart`;
                 const savedCart = localStorage.getItem(cartKey);
                 if (savedCart) {
                     try {
