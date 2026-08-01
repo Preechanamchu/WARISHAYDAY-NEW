@@ -129,6 +129,9 @@ const saveSettings = requireAuth(async (event) => {
     return { statusCode: 400, headers: publicHeaders, body: JSON.stringify({ error: 'showcaseSettings is required.' }) };
   }
   const settings = normalizeSettings(payload.showcaseSettings);
+  const changedCategoryIds = Array.isArray(payload.changedCategoryIds)
+    ? [...new Set(payload.changedCategoryIds.map(Number).filter(Number.isInteger))]
+    : Object.keys(settings.categories).map(Number).filter(Number.isInteger);
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
@@ -144,10 +147,9 @@ const saveSettings = requireAuth(async (event) => {
         updated_at = NOW()
     `, [settings.maxItems, settings.effect.enabled, settings.effect.type, settings.effect.intensity]);
 
-    await client.query('DELETE FROM showcase_category_settings');
-    for (const [categoryId, rawConfig] of Object.entries(settings.categories)) {
-      const id = Number(categoryId);
-      if (!Number.isInteger(id)) continue;
+    for (const id of changedCategoryIds) {
+      const rawConfig = settings.categories[String(id)];
+      if (!rawConfig || typeof rawConfig !== 'object') continue;
       const config = rawConfig && typeof rawConfig === 'object' ? rawConfig : {};
       await client.query(`
         INSERT INTO showcase_category_settings (
@@ -156,6 +158,15 @@ const saveSettings = requireAuth(async (event) => {
         )
         SELECT $1, $2, $3, $4, $5, $6, $7, $8, NOW()
         WHERE EXISTS (SELECT 1 FROM categories WHERE id = $1)
+        ON CONFLICT (category_id) DO UPDATE SET
+          title = EXCLUDED.title,
+          font_size = EXCLUDED.font_size,
+          font_family = EXCLUDED.font_family,
+          text_color = EXCLUDED.text_color,
+          stroke_color = EXCLUDED.stroke_color,
+          shadow_enabled = EXCLUDED.shadow_enabled,
+          shadow_strength = EXCLUDED.shadow_strength,
+          updated_at = NOW()
       `, [
         id,
         String(config.title || '').slice(0, 500),

@@ -1695,6 +1695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let showcaseSettingsSignature = '';
     let showcaseSettingsAutoSaveTimer = null;
     let showcaseSettingsSaveInFlight = false;
+    const dirtyShowcaseCategoryIds = new Set();
 
     let dailyTrafficChart, productSalesChart, categorySalesChart;
     // Advanced Dashboard Charts
@@ -2203,16 +2204,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         showcaseSettingsSaveInFlight = true;
         const snapshot = JSON.parse(JSON.stringify(ensureShowcaseSettings()));
+        const changedCategoryIds = [...dirtyShowcaseCategoryIds];
         try {
             const response = await fetchWithAuth(API_SHOWCASE_SETTINGS_ENDPOINT, {
                 method: 'POST',
-                body: JSON.stringify({ showcaseSettings: snapshot })
+                body: JSON.stringify({ showcaseSettings: snapshot, changedCategoryIds })
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `Save failed: ${response.status}`);
             }
             const result = await response.json();
+            changedCategoryIds.forEach(categoryId => {
+                const currentConfig = ensureShowcaseSettings().categories[String(categoryId)];
+                const savedConfig = snapshot.categories[String(categoryId)];
+                if (JSON.stringify(currentConfig) === JSON.stringify(savedConfig)) dirtyShowcaseCategoryIds.delete(String(categoryId));
+            });
             showcaseSettingsSignature = JSON.stringify(result.showcaseSettings || snapshot);
             localStorage.setItem('warishayday_showcase_settings_updated', String(Date.now()));
             return true;
@@ -2222,7 +2229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         } finally {
             showcaseSettingsSaveInFlight = false;
-            if (JSON.stringify(ensureShowcaseSettings()) !== JSON.stringify(snapshot)) {
+            if (JSON.stringify(ensureShowcaseSettings()) !== JSON.stringify(snapshot) || dirtyShowcaseCategoryIds.size > 0) {
                 queueShowcaseSettingsAutoSave();
             }
         }
@@ -6410,6 +6417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const config = getShowcaseCategoryConfig({ id: input.dataset.categoryId });
             const key = input.dataset.showcaseSetting;
             config[key] = input.type === 'checkbox' ? input.checked : (input.type === 'range' ? Number(input.value) : input.value);
+            dirtyShowcaseCategoryIds.add(String(input.dataset.categoryId));
             if (input.nextElementSibling?.tagName === 'OUTPUT') input.nextElementSibling.textContent = key === 'fontSize' ? `${input.value}px` : input.value;
             updateShowcaseCategoryPreview(root, input.dataset.categoryId);
             queueShowcaseSettingsAutoSave();
@@ -6417,6 +6425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelectorAll('[data-showcase-color]').forEach(button => button.addEventListener('click', () => {
             const key = button.dataset.showcaseColor;
             getShowcaseCategoryConfig({ id: button.dataset.categoryId })[key] = button.dataset.color;
+            dirtyShowcaseCategoryIds.add(String(button.dataset.categoryId));
             button.closest('.showcase-color-palette').querySelectorAll('.showcase-color').forEach(item => item.classList.remove('active'));
             button.classList.add('active');
             updateShowcaseCategoryPreview(root, button.dataset.categoryId);
@@ -6500,8 +6509,29 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCategoryName.textContent = '';
         currentCategoryName.style.display = 'none';
 
+        const applyShowcaseTitleStyle = (element, config) => {
+            element.style.fontSize = `${Math.min(64, Math.max(12, Number(config.fontSize) || 26))}px`;
+            element.style.fontFamily = config.fontFamily || SHOWCASE_FONTS[0];
+            element.style.color = config.color || '#172554';
+            element.style.webkitTextStroke = `1px ${config.strokeColor || '#ffffff'}`;
+            element.style.textShadow = config.shadowEnabled ? `0 ${Math.max(1, Number(config.shadowStrength) / 2)}px ${Math.max(2, Number(config.shadowStrength))}px rgba(15, 23, 42, .32)` : 'none';
+        };
+        const primaryCategoryId = Object.keys(settings.categories)
+            .map(Number)
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)[0];
+        if (Number.isFinite(primaryCategoryId)) {
+            const primaryCategory = appData.categories.find(category => Number(category.id) === primaryCategoryId);
+            const primaryConfig = settings.categories[String(primaryCategoryId)];
+            currentCategoryName.textContent = primaryConfig.title?.trim()
+                || ((lang === 'en' && primaryCategory?.name_en) ? primaryCategory.name_en : primaryCategory?.name)
+                || '';
+            applyShowcaseTitleStyle(currentCategoryName, primaryConfig);
+            currentCategoryName.style.display = '';
+        }
+
         let visibleProductIndex = 0;
-        let isFirstVisibleCategory = true;
+        let isFirstVisibleCategory = !Number.isFinite(primaryCategoryId);
         appData.categories.forEach(category => {
             const products = appData.allProducts.filter(product => Number(product.category_id) === Number(category.id) && selected.has(Number(product.id)) && !product.hidden);
             if (!products.length) return;
@@ -6511,11 +6541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.createElement('h2');
             title.className = 'showcase-store-title';
             title.textContent = config.title?.trim() || ((lang === 'en' && category.name_en) ? category.name_en : category.name);
-            title.style.fontSize = `${Math.min(64, Math.max(12, Number(config.fontSize) || 26))}px`;
-            title.style.fontFamily = config.fontFamily || SHOWCASE_FONTS[0];
-            title.style.color = config.color || '#172554';
-            title.style.webkitTextStroke = `1px ${config.strokeColor || '#ffffff'}`;
-            title.style.textShadow = config.shadowEnabled ? `0 ${Math.max(1, Number(config.shadowStrength) / 2)}px ${Math.max(2, Number(config.shadowStrength))}px rgba(15, 23, 42, .32)` : 'none';
+            applyShowcaseTitleStyle(title, config);
             if (isFirstVisibleCategory) {
                 currentCategoryName.textContent = title.textContent;
                 currentCategoryName.style.display = '';
@@ -6525,7 +6551,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentCategoryName.style.webkitTextStroke = title.style.webkitTextStroke;
                 currentCategoryName.style.textShadow = title.style.textShadow;
                 isFirstVisibleCategory = false;
-            } else {
+            } else if (Number(category.id) !== primaryCategoryId) {
                 section.appendChild(title);
             }
             const grid = document.createElement('div');
