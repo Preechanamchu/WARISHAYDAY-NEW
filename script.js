@@ -1693,6 +1693,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let showcaseSettingsRefreshInFlight = false;
     let showcaseSettingsSyncListenersReady = false;
     let showcaseSettingsSignature = '';
+    let showcaseSettingsAutoSaveTimer = null;
+    let showcaseSettingsSaveInFlight = false;
 
     let dailyTrafficChart, productSalesChart, categorySalesChart;
     // Advanced Dashboard Charts
@@ -2192,6 +2194,45 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             showcaseSettingsRefreshInFlight = false;
         }
+    };
+
+    const saveShowcaseSettingsToDatabase = async ({ silent = false } = {}) => {
+        if (showcaseSettingsSaveInFlight) {
+            queueShowcaseSettingsAutoSave();
+            return false;
+        }
+        showcaseSettingsSaveInFlight = true;
+        const snapshot = JSON.parse(JSON.stringify(ensureShowcaseSettings()));
+        try {
+            const response = await fetchWithAuth(API_SHOWCASE_SETTINGS_ENDPOINT, {
+                method: 'POST',
+                body: JSON.stringify({ showcaseSettings: snapshot })
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Save failed: ${response.status}`);
+            }
+            const result = await response.json();
+            showcaseSettingsSignature = JSON.stringify(result.showcaseSettings || snapshot);
+            localStorage.setItem('warishayday_showcase_settings_updated', String(Date.now()));
+            return true;
+        } catch (error) {
+            console.error('Failed to save showcase settings:', error);
+            if (!silent) Notify.error('บันทึกไม่สำเร็จ', 'ไม่สามารถอัปเดตหน้าลิงก์ร้านค้าได้');
+            return false;
+        } finally {
+            showcaseSettingsSaveInFlight = false;
+            if (JSON.stringify(ensureShowcaseSettings()) !== JSON.stringify(snapshot)) {
+                queueShowcaseSettingsAutoSave();
+            }
+        }
+    };
+
+    const queueShowcaseSettingsAutoSave = () => {
+        window.clearTimeout(showcaseSettingsAutoSaveTimer);
+        showcaseSettingsAutoSaveTimer = window.setTimeout(() => {
+            void saveShowcaseSettingsToDatabase();
+        }, 900);
     };
 
     const startShowcaseSettingsSync = () => {
@@ -6347,6 +6388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settings.selectedProductIds = [...current];
             input.closest('.showcase-product-option')?.classList.toggle('selected', input.checked);
             updateShowcaseMasterCheckboxes(root);
+            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-category-select]').forEach(input => input.addEventListener('change', () => {
             const ids = (input.dataset.productIds || '').split(',').filter(Boolean).map(Number);
@@ -6361,6 +6403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             updateShowcaseMasterCheckboxes(root);
+            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-setting]').forEach(input => input.addEventListener('input', () => {
             const config = getShowcaseCategoryConfig({ id: input.dataset.categoryId });
@@ -6368,6 +6411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             config[key] = input.type === 'checkbox' ? input.checked : (input.type === 'range' ? Number(input.value) : input.value);
             if (input.nextElementSibling?.tagName === 'OUTPUT') input.nextElementSibling.textContent = key === 'fontSize' ? `${input.value}px` : input.value;
             updateShowcaseCategoryPreview(root, input.dataset.categoryId);
+            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-color]').forEach(button => button.addEventListener('click', () => {
             const key = button.dataset.showcaseColor;
@@ -6375,19 +6419,23 @@ document.addEventListener('DOMContentLoaded', () => {
             button.closest('.showcase-color-palette').querySelectorAll('.showcase-color').forEach(item => item.classList.remove('active'));
             button.classList.add('active');
             updateShowcaseCategoryPreview(root, button.dataset.categoryId);
+            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-effect]').forEach(button => button.addEventListener('click', () => {
             settings.effect.type = button.dataset.showcaseEffect;
             root.querySelectorAll('[data-showcase-effect]').forEach(item => item.classList.toggle('active', item === button));
+            queueShowcaseSettingsAutoSave();
         }));
-        root.querySelector('#showcase-effect-enabled')?.addEventListener('change', event => { settings.effect.enabled = event.target.checked; });
+        root.querySelector('#showcase-effect-enabled')?.addEventListener('change', event => { settings.effect.enabled = event.target.checked; queueShowcaseSettingsAutoSave(); });
         root.querySelector('#showcase-max-items')?.addEventListener('input', event => {
             settings.maxItems = Math.min(100000, Math.max(1, Math.floor(Number(event.target.value) || 1)));
+            queueShowcaseSettingsAutoSave();
         });
         root.querySelector('#showcase-max-items')?.addEventListener('blur', event => { event.target.value = settings.maxItems; });
         root.querySelector('#showcase-effect-intensity')?.addEventListener('input', event => {
             settings.effect.intensity = Number(event.target.value);
             event.target.nextElementSibling.textContent = event.target.value;
+            queueShowcaseSettingsAutoSave();
         });
         root.querySelector('#copy-showcase-link')?.addEventListener('click', async event => {
             try { await navigator.clipboard.writeText(link); Notify.success('คัดลอกลิงก์แล้ว', 'พร้อมนำไปแชร์ให้ลูกค้า'); }
@@ -6404,9 +6452,9 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelector('#open-showcase-link')?.addEventListener('click', () => window.open(link, '_blank', 'noopener'));
         root.querySelector('#save-showcase-settings')?.addEventListener('click', async event => {
             addLog('showcase_settings', `Selected ${settings.selectedProductIds.length} products`);
-            const saved = await saveState();
+            window.clearTimeout(showcaseSettingsAutoSaveTimer);
+            const saved = await saveShowcaseSettingsToDatabase();
             if (saved) {
-                localStorage.setItem('warishayday_showcase_settings_updated', String(Date.now()));
                 Notify.success('บันทึกสำเร็จ', 'หน้าของผู้ใช้ทุกคนกำลังอัปเดต');
                 showSaveFeedback(event.currentTarget);
             }

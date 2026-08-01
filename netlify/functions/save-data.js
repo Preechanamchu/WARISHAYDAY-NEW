@@ -44,7 +44,7 @@ const handler = async (event, context) => {
       // 1. Update Shop Settings - Any authenticated admin can do this.
       if (data.shopSettings) {
         // 1. ดึงข้อมูลการตั้งค่าปัจจุบันจาก DB
-        const result = await client.query('SELECT settings_json FROM shop_settings WHERE id = 1');
+        const result = await client.query('SELECT settings_json FROM shop_settings WHERE id = 1 FOR UPDATE');
         let currentSettings = result.rows[0]?.settings_json || {};
 
         // 2. ผสาน (Merge) ข้อมูลใหม่ (data.shopSettings) เข้ากับข้อมูลปัจจุบัน
