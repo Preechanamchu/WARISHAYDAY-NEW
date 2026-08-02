@@ -20,7 +20,7 @@
     --marquee-duration: 20s;
     --main-menu-font-size: 0.9rem;
     --sub-menu-font-size: 1rem;
-    --grid-columns: 6;
+    --grid-columns: 5;
     --progress-width: 0%;
 
     --grid-horizontal-gap: 10px;
@@ -6927,9 +6927,28 @@ body.dark-mode .customer-price-tag-btn:hover {
 
 .product-grid-container {
     display: grid;
-    grid-template-columns: repeat(var(--grid-columns, 6), 1fr);
+    grid-template-columns: repeat(var(--grid-columns, 5), 1fr);
     gap: var(--grid-vertical-gap) var(--grid-horizontal-gap);
     padding-top: 10px;
+}
+
+.grid-auto-columns-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--text-muted, #64748b);
+    font-size: .85rem;
+    cursor: pointer;
+}
+.grid-auto-columns-toggle input {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--primary-color, #16a34a);
+}
+#grid-columns-slider:disabled {
+    opacity: .55;
+    cursor: not-allowed;
 }
 
 .product-card-placeholder {
@@ -28471,7 +28490,7 @@ body.showcase-storefront-mode #product-grid.showcase-root,
 body.showcase-storefront-mode #product-grid { display: block; }
 .showcase-store-category { position: relative; margin-bottom: 28px; padding: 13px; border: 1px solid rgba(14,116,144,.13); border-radius: 22px; background: rgba(255,255,255,.52); box-shadow: 0 12px 30px rgba(15,23,42,.06); backdrop-filter: blur(9px); }
 .showcase-store-title { position: relative; z-index: 2; margin: 5px 0 16px; text-align: center; line-height: 1.25; letter-spacing: .015em; }
-.showcase-products-grid { display: grid; grid-template-columns: repeat(var(--grid-columns, 6), minmax(0,1fr)); gap: var(--grid-vertical-gap,5px) var(--grid-horizontal-gap,5px); }
+.showcase-products-grid { display: grid; grid-template-columns: repeat(var(--grid-columns, 5), minmax(0,1fr)); gap: var(--grid-vertical-gap,5px) var(--grid-horizontal-gap,5px); }
 .showcase-store-empty { display: grid; justify-items: center; gap: 6px; min-height: 280px; align-content: center; color: #64748b; }
 .showcase-store-empty span { font-size: 3rem; }
 .showcase-store-empty h3, .showcase-store-empty p { margin: 0; }

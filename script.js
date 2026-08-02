@@ -94,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // ===== END: Order Bar Position Update =====
             },
             gridLayoutSettings: {
-                columns: 6,
+                columns: 5,
+                autoColumns: true,
                 frameStyle: 'frame-style-1',
                 horizontalGap: 5,
                 verticalGap: 5,
@@ -1810,15 +1811,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const getAutoGridColumns = (viewportWidth = window.innerWidth) => {
+        // Keep compact screens at the requested minimum. Common tablets and
+        // desktop screens use eight cards; very wide screens can expand to ten.
+        if (viewportWidth < 768) return 5;
+        if (viewportWidth < 2400) return 8;
+        return 10;
+    };
+
+    const getGridColumnValue = (settings, viewportWidth = window.innerWidth) => {
+        if (settings.autoColumns !== false) return getAutoGridColumns(viewportWidth);
+        return Math.min(10, Math.max(5, Math.round(Number(settings.columns) || 5)));
+    };
+
     const applyGridLayoutSettings = () => {
         const root = document.documentElement;
         const settings = appData.shopSettings.gridLayoutSettings;
 
-        let columns = settings.columns;
-        if (window.innerWidth < 576) {
-        } else if (window.innerWidth < 768) {
-            if (columns > 8) columns = 8;
-        }
+        if (settings.autoColumns === undefined) settings.autoColumns = true;
+        const columns = getGridColumnValue(settings);
 
         root.style.setProperty('--grid-columns', columns);
 
@@ -6979,10 +6990,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const syncGridColumnControls = () => {
+        const slider = document.getElementById('grid-columns-slider');
+        const autoToggle = document.getElementById('grid-auto-columns-toggle');
+        const display = document.getElementById('grid-columns-slider-value');
+        if (!slider || !autoToggle) return;
+
+        const settings = appData.shopSettings.gridLayoutSettings;
+        const autoEnabled = settings.autoColumns !== false;
+        const effectiveColumns = getGridColumnValue(settings);
+        slider.min = '5';
+        slider.max = '10';
+        slider.value = String(autoEnabled ? effectiveColumns : getGridColumnValue({ ...settings, autoColumns: false }));
+        slider.disabled = autoEnabled;
+        autoToggle.checked = autoEnabled;
+        if (display) display.textContent = autoEnabled ? `${effectiveColumns} (อัตโนมัติ)` : `${effectiveColumns}`;
+    };
+
     const renderGridLayoutAdminPage = () => {
         const settings = appData.shopSettings.gridLayoutSettings;
 
-        document.getElementById('grid-columns-slider').value = settings.columns;
+        syncGridColumnControls();
         document.getElementById('card-font-size-slider').value = settings.cardFontSize;
         document.getElementById('card-height-slider').value = settings.cardHeight;
         document.getElementById('card-width-slider').value = settings.cardWidth;
@@ -7007,6 +7035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateGridLayoutPreview();
         document.querySelectorAll('#admin-menu-grid-layout input[type="range"]').forEach(updateRangeValueDisplay);
+        syncGridColumnControls();
     };
 
     // Frame Styles Modal Functions
@@ -7049,7 +7078,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let logDetails = '';
 
         if (section === 'general') {
-            settings.columns = document.getElementById('grid-columns-slider').value;
+            settings.columns = Math.min(10, Math.max(5, Number(document.getElementById('grid-columns-slider').value) || 5));
+            settings.autoColumns = document.getElementById('grid-auto-columns-toggle')?.checked !== false;
             settings.cardFontSize = document.getElementById('card-font-size-slider').value;
             settings.horizontalGap = document.getElementById('grid-horizontal-gap-slider').value;
             settings.verticalGap = document.getElementById('grid-vertical-gap-slider').value;
@@ -14473,6 +14503,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateGridLayoutPreview();
                 }
             });
+            document.getElementById('grid-auto-columns-toggle')?.addEventListener('change', (e) => {
+                appData.shopSettings.gridLayoutSettings.autoColumns = e.target.checked;
+                syncGridColumnControls();
+                applyGridLayoutSettings();
+                updateGridLayoutPreview();
+            });
         }
 
         document.getElementById('position-element-select').addEventListener('change', (e) => {
@@ -15122,6 +15158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         resizeCanvas();
         applyGridLayoutSettings();
+        syncGridColumnControls();
     });
 
     init();
