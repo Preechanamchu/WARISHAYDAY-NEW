@@ -1811,12 +1811,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const getAutoGridColumns = (viewportWidth = window.innerWidth) => {
-        // Keep compact screens at the requested minimum. Common tablets and
-        // desktop screens use eight cards; very wide screens can expand to ten.
+    const getAutoGridColumns = (viewportWidth = window.innerWidth, maximumColumns = 5) => {
+        const maximum = Math.min(15, Math.max(5, Math.round(Number(maximumColumns) || 5)));
+        // Small devices always stay at the minimum five cards. Tablet sizing
+        // scales from 8 cards (cap 10) to 10 cards (cap 15), while desktop
+        // uses the selected upper limit directly.
         if (viewportWidth < 768) return 5;
-        if (viewportWidth < 2400) return 8;
-        return 10;
+        if (viewportWidth < 1440) return Math.min(maximum, Math.max(5, Math.round(4 + (maximum * 0.4))));
+        return maximum;
     };
 
     const getGridColumnValue = (settings, viewportWidth = window.innerWidth) => {
@@ -1824,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (settings.autoColumns !== false) {
             // In automatic mode, `columns` is the user's upper limit. The
             // responsive target may be lower, but never exceeds that limit.
-            return Math.min(getAutoGridColumns(viewportWidth), Math.max(5, configuredColumns));
+            return getAutoGridColumns(viewportWidth, Math.max(5, configuredColumns));
         }
         return configuredColumns;
     };
