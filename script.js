@@ -1820,8 +1820,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getGridColumnValue = (settings, viewportWidth = window.innerWidth) => {
-        if (settings.autoColumns !== false) return getAutoGridColumns(viewportWidth);
-        return Math.min(10, Math.max(5, Math.round(Number(settings.columns) || 5)));
+        const configuredColumns = Math.min(15, Math.max(1, Math.round(Number(settings.columns) || 5)));
+        if (settings.autoColumns !== false) {
+            // In automatic mode, `columns` is the user's upper limit. The
+            // responsive target may be lower, but never exceeds that limit.
+            return Math.min(getAutoGridColumns(viewportWidth), Math.max(5, configuredColumns));
+        }
+        return configuredColumns;
     };
 
     const applyGridLayoutSettings = () => {
@@ -6998,13 +7003,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const settings = appData.shopSettings.gridLayoutSettings;
         const autoEnabled = settings.autoColumns !== false;
-        const effectiveColumns = getGridColumnValue(settings);
-        slider.min = '5';
-        slider.max = '10';
-        slider.value = String(autoEnabled ? effectiveColumns : getGridColumnValue({ ...settings, autoColumns: false }));
-        slider.disabled = autoEnabled;
+        const configuredColumns = Math.min(15, Math.max(autoEnabled ? 5 : 1, Math.round(Number(settings.columns) || 5)));
+        slider.min = '1';
+        slider.max = '15';
+        slider.value = String(configuredColumns);
+        // The slider remains available in automatic mode because it controls
+        // the maximum number of responsive columns.
+        slider.disabled = false;
         autoToggle.checked = autoEnabled;
-        if (display) display.textContent = autoEnabled ? `${effectiveColumns} (อัตโนมัติ)` : `${effectiveColumns}`;
+        if (display) display.textContent = autoEnabled ? `${configuredColumns} (สูงสุด)` : `${configuredColumns}`;
     };
 
     const renderGridLayoutAdminPage = () => {
@@ -7078,8 +7085,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let logDetails = '';
 
         if (section === 'general') {
-            settings.columns = Math.min(10, Math.max(5, Number(document.getElementById('grid-columns-slider').value) || 5));
+            settings.columns = Math.min(15, Math.max(1, Number(document.getElementById('grid-columns-slider').value) || 5));
             settings.autoColumns = document.getElementById('grid-auto-columns-toggle')?.checked !== false;
+            if (settings.autoColumns && settings.columns < 5) {
+                settings.columns = 5;
+                settings.autoColumns = false;
+            }
             settings.cardFontSize = document.getElementById('card-font-size-slider').value;
             settings.horizontalGap = document.getElementById('grid-horizontal-gap-slider').value;
             settings.verticalGap = document.getElementById('grid-vertical-gap-slider').value;
@@ -14504,7 +14515,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             document.getElementById('grid-auto-columns-toggle')?.addEventListener('change', (e) => {
-                appData.shopSettings.gridLayoutSettings.autoColumns = e.target.checked;
+                const settings = appData.shopSettings.gridLayoutSettings;
+                settings.autoColumns = e.target.checked;
+                if (settings.autoColumns && Number(settings.columns) < 5) settings.columns = 5;
+                syncGridColumnControls();
+                applyGridLayoutSettings();
+                updateGridLayoutPreview();
+            });
+            document.getElementById('grid-columns-slider')?.addEventListener('input', (e) => {
+                const settings = appData.shopSettings.gridLayoutSettings;
+                const nextValue = Math.min(15, Math.max(1, Number(e.target.value) || 1));
+                settings.columns = nextValue;
+                const autoToggle = document.getElementById('grid-auto-columns-toggle');
+                if (autoToggle?.checked && nextValue < 5) {
+                    // Moving below five explicitly switches to manual mode.
+                    autoToggle.checked = false;
+                    settings.autoColumns = false;
+                }
                 syncGridColumnControls();
                 applyGridLayoutSettings();
                 updateGridLayoutPreview();

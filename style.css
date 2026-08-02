@@ -6946,10 +6946,6 @@ body.dark-mode .customer-price-tag-btn:hover {
     height: 17px;
     accent-color: var(--primary-color, #16a34a);
 }
-#grid-columns-slider:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-}
 
 .product-card-placeholder {
     aspect-ratio: 3 / 4;
