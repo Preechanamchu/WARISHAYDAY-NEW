@@ -2203,14 +2203,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const saveShowcaseSettingsToDatabase = async ({ silent = false } = {}) => {
+    const saveShowcaseSettingsToDatabase = async ({ silent = false, includeDirtyCategories = true, categoryIds = null } = {}) => {
         if (showcaseSettingsSaveInFlight) {
             queueShowcaseSettingsAutoSave();
             return false;
         }
         showcaseSettingsSaveInFlight = true;
         const snapshot = JSON.parse(JSON.stringify(ensureShowcaseSettings()));
-        const changedCategoryIds = [...dirtyShowcaseCategoryIds];
+        const changedCategoryIds = Array.isArray(categoryIds)
+            ? [...new Set(categoryIds.map(String))]
+            : (includeDirtyCategories ? [...dirtyShowcaseCategoryIds] : []);
         try {
             const response = await fetchWithAuth(API_SHOWCASE_SETTINGS_ENDPOINT, {
                 method: 'POST',
@@ -2235,7 +2237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         } finally {
             showcaseSettingsSaveInFlight = false;
-            if (JSON.stringify(ensureShowcaseSettings()) !== JSON.stringify(snapshot) || dirtyShowcaseCategoryIds.size > 0) {
+            if (includeDirtyCategories && !Array.isArray(categoryIds) && (JSON.stringify(ensureShowcaseSettings()) !== JSON.stringify(snapshot) || dirtyShowcaseCategoryIds.size > 0)) {
                 queueShowcaseSettingsAutoSave();
             }
         }
@@ -2244,7 +2246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueShowcaseSettingsAutoSave = () => {
         window.clearTimeout(showcaseSettingsAutoSaveTimer);
         showcaseSettingsAutoSaveTimer = window.setTimeout(() => {
-            void saveShowcaseSettingsToDatabase();
+            void saveShowcaseSettingsToDatabase({ includeDirtyCategories: false });
         }, 900);
     };
 
@@ -6286,6 +6288,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const getShowcaseCategorySaveLabel = (category) => {
+        const settings = ensureShowcaseSettings();
+        const config = getShowcaseCategoryConfig(category);
+        const title = config.title?.trim() || category.name || 'สินค้า';
+        const alreadyDescribesOffer = title.includes('ฟรี') || title.includes(`${settings.maxItems}`);
+        return `กด ${title}${alreadyDescribesOffer ? '' : ` ${settings.maxItems} ชิ้น ฟรี`}`;
+    };
+
+    const updateShowcaseCategorySaveLabels = (root) => {
+        root.querySelectorAll('[data-showcase-category-save]').forEach(button => {
+            const category = appData.categories.find(item => String(item.id) === String(button.dataset.showcaseCategorySave));
+            if (category) button.textContent = getShowcaseCategorySaveLabel(category);
+        });
+    };
+
     const updateShowcaseCategoryPreview = (root, categoryId) => {
         const preview = root.querySelector(`[data-showcase-preview="${categoryId}"]`);
         if (!preview) return;
@@ -6331,7 +6348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span>${category.icon ? `<img src="${escapeShowcaseText(category.icon)}" alt="" loading="lazy" decoding="async">` : '📦'}</span>
                             <span class="showcase-category-name"><strong>${escapeShowcaseText(category.name)}</strong><small>เลือกสินค้าและออกแบบหัวข้อของหมวดนี้</small></span>
                         </label>
-                        <div class="showcase-category-head-actions"><span class="showcase-selected-count" data-showcase-count="${category.id}">0/${ids.length} สินค้า</span><button type="button" class="showcase-collapse-btn" data-showcase-toggle="${category.id}" aria-expanded="${isExpanded}" title="${isExpanded ? 'พับหมวดหมู่' : 'เปิดหมวดหมู่'}"><span>${isExpanded ? '−' : '+'}</span></button></div>
+                        <div class="showcase-category-head-actions"><span class="showcase-selected-count" data-showcase-count="${category.id}">0/${ids.length} สินค้า</span><button type="button" class="showcase-category-save-btn" data-showcase-category-save="${category.id}">${escapeShowcaseText(getShowcaseCategorySaveLabel(category))}</button><button type="button" class="showcase-collapse-btn" data-showcase-toggle="${category.id}" aria-expanded="${isExpanded}" title="${isExpanded ? 'พับหมวดหมู่' : 'เปิดหมวดหมู่'}"><span>${isExpanded ? '−' : '+'}</span></button></div>
                     </div>
                     <div class="showcase-category-body" ${isExpanded ? '' : 'hidden'}>
                         <div class="showcase-settings-groups">
@@ -6374,7 +6391,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         root.innerHTML = `
             <div class="showcase-admin-shell">
-                <div class="showcase-admin-hero"><div><h2>🎯 ตั้งค่าของแถบ ฟรี</h2></div><button type="button" class="btn btn-primary" id="save-showcase-settings">💾 บันทึกการตั้งค่า</button></div>
                 <div class="showcase-link-card"><div class="showcase-link-info"><span class="showcase-link-icon">🔗</span><div><strong>ลิงก์ร้านค้าใหม่</strong><small>ลิงก์สั้นสำหรับแชร์ หน้านี้จะแสดงเฉพาะสินค้าที่เลือก</small></div></div><div class="showcase-link-actions"><div class="showcase-url-field"><span>${escapeShowcaseText(linkProtocol)}</span><input id="showcase-link-display" value="${escapeShowcaseText(linkDisplay)}" data-full-url="${escapeShowcaseText(link)}" readonly></div><button type="button" class="btn btn-secondary" id="copy-showcase-link">คัดลอก</button><button type="button" class="btn btn-primary" id="open-showcase-link">เปิดดู</button></div></div>
                 ${conditionsCard}
                 <div class="showcase-settings-tabs"><button type="button" data-showcase-tab="products" class="${activeShowcaseSettingsTab === 'products' ? 'active' : ''}">🛍️ สินค้าและหัวข้อ</button><button type="button" data-showcase-tab="effects" class="${activeShowcaseSettingsTab === 'effects' ? 'active' : ''}">🎉 เอฟเฟ็กต์ฉลอง 5 แบบ</button></div>
@@ -6405,7 +6421,6 @@ document.addEventListener('DOMContentLoaded', () => {
             settings.selectedProductIds = [...current];
             input.closest('.showcase-product-option')?.classList.toggle('selected', input.checked);
             updateShowcaseMasterCheckboxes(root);
-            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-category-select]').forEach(input => input.addEventListener('change', () => {
             const ids = (input.dataset.productIds || '').split(',').filter(Boolean).map(Number);
@@ -6420,7 +6435,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             updateShowcaseMasterCheckboxes(root);
-            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-setting]').forEach(input => input.addEventListener('input', () => {
             const config = getShowcaseCategoryConfig({ id: input.dataset.categoryId });
@@ -6429,7 +6443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dirtyShowcaseCategoryIds.add(String(input.dataset.categoryId));
             if (input.nextElementSibling?.tagName === 'OUTPUT') input.nextElementSibling.textContent = key === 'fontSize' ? `${input.value}px` : input.value;
             updateShowcaseCategoryPreview(root, input.dataset.categoryId);
-            queueShowcaseSettingsAutoSave();
+            updateShowcaseCategorySaveLabels(root);
         }));
         root.querySelectorAll('[data-showcase-color]').forEach(button => button.addEventListener('click', () => {
             const key = button.dataset.showcaseColor;
@@ -6438,7 +6452,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.closest('.showcase-color-palette').querySelectorAll('.showcase-color').forEach(item => item.classList.remove('active'));
             button.classList.add('active');
             updateShowcaseCategoryPreview(root, button.dataset.categoryId);
-            queueShowcaseSettingsAutoSave();
         }));
         root.querySelectorAll('[data-showcase-effect]').forEach(button => button.addEventListener('click', () => {
             settings.effect.type = button.dataset.showcaseEffect;
@@ -6448,6 +6461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         root.querySelector('#showcase-effect-enabled')?.addEventListener('change', event => { settings.effect.enabled = event.target.checked; queueShowcaseSettingsAutoSave(); });
         root.querySelector('#showcase-max-items')?.addEventListener('input', event => {
             settings.maxItems = Math.min(100000, Math.max(1, Math.floor(Number(event.target.value) || 1)));
+            updateShowcaseCategorySaveLabels(root);
             queueShowcaseSettingsAutoSave();
         });
         root.querySelector('#showcase-max-items')?.addEventListener('blur', event => { event.target.value = settings.maxItems; });
@@ -6469,17 +6483,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         root.querySelector('#open-showcase-link')?.addEventListener('click', () => window.open(link, '_blank', 'noopener'));
-        root.querySelector('#save-showcase-settings')?.addEventListener('click', async event => {
-            addLog('showcase_settings', `Selected ${settings.selectedProductIds.length} products`);
+        root.querySelectorAll('[data-showcase-category-save]').forEach(button => button.addEventListener('click', async event => {
+            const categoryId = String(event.currentTarget.dataset.showcaseCategorySave);
+            dirtyShowcaseCategoryIds.add(categoryId);
+            addLog('showcase_settings', `Saved category ${categoryId} with ${settings.selectedProductIds.length} products`);
             window.clearTimeout(showcaseSettingsAutoSaveTimer);
-            const saved = await saveShowcaseSettingsToDatabase();
+            const saved = await saveShowcaseSettingsToDatabase({ categoryIds: [categoryId] });
             if (saved) {
-                Notify.success('บันทึกสำเร็จ', 'หน้าของผู้ใช้ทุกคนกำลังอัปเดต');
+                Notify.success('บันทึกสำเร็จ', event.currentTarget.textContent);
                 showSaveFeedback(event.currentTarget);
             }
-        });
+        }));
         root.querySelectorAll('[data-showcase-preview]').forEach(preview => updateShowcaseCategoryPreview(root, preview.dataset.showcasePreview));
         updateShowcaseMasterCheckboxes(root);
+        updateShowcaseCategorySaveLabels(root);
     };
 
     const mountShowcaseEffect = () => {
