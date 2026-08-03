@@ -1270,11 +1270,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'main-control': 'ควบคุมหน้าหลัก',
             'section-backgrounds': 'พื้นหลัง'
         },
-        'order-number': { 
-            'confirm-orders': 'confirmOrdersTitle', 
-            'active-orders': 'activeOrdersTitle', 
-            'cancelled-orders': 'cancelledOrdersTitle',
-            'hayday-ai': 'เชื่อมต่อระบบ HAYDAY AI'
+        'order-number': {
+            'confirm-orders': 'confirmOrdersTitle',
+            'active-orders': 'activeOrdersTitle',
+            'cancelled-orders': 'cancelledOrdersTitle'
         },
         'festival': {
             'announcement-message': 'announcementMessageSettings',
@@ -6830,15 +6829,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const searchControls = document.getElementById('order-search-controls');
             if (searchControls) {
-                if (activeSub === 'hayday-ai') {
-                    searchControls.style.setProperty('display', 'none', 'important');
-                } else {
-                    searchControls.style.setProperty('display', 'flex', 'important');
-                }
-            }
-
-            if (activeSub === 'hayday-ai') {
-                checkHaydayBotStatus();
+                searchControls.style.setProperty('display', 'flex', 'important');
             }
 
             if (!orderDatePicker) {
@@ -11298,7 +11289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = document.createElement('tr');
             const orderTotal = parseFloat(order.total || 0).toLocaleString();
             if (order.status === 'new') {
-                row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-success btn-small confirm-order-action" data-id="${orderId}">ยืนยัน</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">${translations[lang].deleteBtn || 'ลบ'}</button><button class="btn btn-info btn-small view-order-details" data-id="${orderId}">ดูรายการ</button></td>`;
+                row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-info btn-small view-order-details" data-id="${orderId}">${translations[lang].viewDetailsBtn || 'ดูรายการ'}</button><button class="btn btn-success btn-small confirm-order-action" data-id="${orderId}">ยืนยัน</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">${translations[lang].deleteBtn || 'ลบ'}</button></td>`;
                 confirmList.appendChild(row);
             } else if (order.status === 'active') {
                 row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-info btn-small view-order-details" data-id="${orderId}">${translations[lang].viewDetailsBtn || 'ดูรายการ'}</button><button class="btn btn-orange btn-small cancel-order-action" data-id="${orderId}">${translations[lang].cancelOrderBtn || 'ยกเลิก'}</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">${translations[lang].deleteBtn || 'ลบ'}</button></td>`;
@@ -11395,7 +11386,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const orderTotal = parseFloat(order.total || 0).toLocaleString();
 
             if (order.status === 'new') {
-                row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-success btn-small confirm-order-action" data-id="${orderId}">ยืนยัน</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">ลบ</button></td>`;
+                row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-info btn-small view-order-details" data-id="${orderId}">${translations[lang].viewDetailsBtn || 'ดูรายการ'}</button><button class="btn btn-success btn-small confirm-order-action" data-id="${orderId}">ยืนยัน</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">ลบ</button></td>`;
                 confirmList.appendChild(row);
             } else if (order.status === 'active') {
                 row.innerHTML = `<td>${orderId}</td><td>${formattedDate}</td><td>${orderTotal} บาท</td><td><button class="btn btn-info btn-small view-order-details" data-id="${orderId}">ดูรายการ</button><button class="btn btn-orange btn-small cancel-order-action" data-id="${orderId}">ยกเลิก</button><button class="btn btn-danger btn-small delete-order-action" data-id="${orderId}">ลบ</button></td>`;
@@ -11775,11 +11766,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewOrderDetails = (orderId) => {
         const order = appData.analytics.orders.find(o => (o.order_id === orderId || o.id === orderId));
         if (!order) return;
-
-        if (order.status === 'new') {
-            openWarisAIOrderModal(order);
-            return;
-        }
 
         const originalCart = { ...appData.cart };
         const originalPromo = currentAppliedPromo;
@@ -15193,7 +15179,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setupStockSettingsListeners();
         setupPromotionListeners();
         initEventListeners();
-        initHaydayAiBotIntegration();
+        // The HAYDAY AI connection panel is no longer exposed in Admin Panel.
+        // Keep the order-to-bot helper available for existing integrations, but
+        // do not initialize the removed settings screen on startup.
 
         mainContainer.classList.add('loaded');
 
